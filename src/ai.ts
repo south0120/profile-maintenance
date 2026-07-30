@@ -300,10 +300,19 @@ export async function collectCareersFromWeb(
     system: COLLECT_PROMPT,
   };
 
+  // 追加ラウンドではツール枠を絞る（合計上限をおおむね16回に抑える）
+  const contParams = {
+    ...baseParams,
+    tools: [
+      { type: 'web_search_20260209' as const, name: 'web_search' as const, max_uses: 3 },
+      { type: 'web_fetch_20260209' as const, name: 'web_fetch' as const, max_uses: 3 },
+    ],
+  };
+
   // ストリーミングで実行し、ツール実行のたびに進捗を通知する
   let toolCount = 0;
-  async function runOnce(msgs: Anthropic.Beta.BetaMessageParam[]) {
-    const stream = client.beta.messages.stream({ ...baseParams, messages: msgs }, { signal });
+  async function runOnce(msgs: Anthropic.Beta.BetaMessageParam[], params = baseParams) {
+    const stream = client.beta.messages.stream({ ...params, messages: msgs }, { signal });
     for await (const ev of stream) {
       if (ev.type === 'content_block_start' && ev.content_block.type === 'server_tool_use') {
         toolCount++;
@@ -319,12 +328,17 @@ export async function collectCareersFromWeb(
   try {
     onProgress?.('調査を開始しています…');
     response = await runOnce(messages);
-    // サーバーサイドツールのループが上限に達した場合は継続する（最大2回まで）
+    // 一区切りで終わらなかった場合のみ継続（最大2回・合計ツール実行が10回未満のときだけ）
     let guard = 0;
-    while (response.stop_reason === 'pause_turn' && guard++ < 2) {
+    while (response.stop_reason === 'pause_turn' && guard++ < 2 && toolCount < 10) {
       onProgress?.('調査を継続しています…');
       messages = [...messages, { role: 'assistant', content: response.content }];
-      response = await runOnce(messages);
+      response = await runOnce(messages, contParams);
+    }
+    if (response.stop_reason === 'pause_turn') {
+      throw new Error(
+        '調査が規定回数内に終わらなかったため打ち切りました。情報源URLをお知らせ一覧など軽いページに絞るか、もう一度お試しください。',
+      );
     }
   } catch (err) {
     if (err instanceof Anthropic.APIUserAbortError) {
