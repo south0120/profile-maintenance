@@ -166,3 +166,29 @@ main { padding: 18px; }
   .profile-page { page-break-after: avoid; }
   .photo-placeholder { visibility: hidden; }
 }
+
+/* 経歴ストック・AI提案 */
+.career-table tr.row-hidden td { opacity: 0.45; }
+.ai-panel {
+  border: 1px solid #cdd7ea; background: #f5f8fd; border-radius: 10px;
+  padding: 14px 16px; margin-bottom: 16px;
+}
+.ai-panel h4 { margin: 0 0 6px; }
+.ai-input-row { display: flex; gap: 10px; margin-top: 8px; }
+.ai-input-row input { flex: 1; }
+.ai-error { color: #c0392b; font-size: 13px; margin: 8px 0 0; }
+.ai-proposal {
+  margin-top: 12px; background: #fff; border: 1px solid #d5d9df;
+  border-radius: 8px; padding: 12px 14px;
+}
+.ai-reason { font-size: 13px; margin: 0 0 8px; }
+.ai-preview { list-style: none; margin: 0 0 12px; padding: 0; max-height: 300px; overflow-y: auto; }
+.ai-preview li { font-size: 13px; padding: 3px 0; border-bottom: 1px dashed #eceef1; }
+.ai-preview li.off { color: #9aa1ab; text-decoration: line-through; }
+.ai-preview li.hl { color: #cc0000; font-weight: 700; }
+.ai-preview .badge {
+  display: inline-block; font-size: 11px; background: #e9ebee; color: #57606a;
+  border-radius: 4px; padding: 0 6px; margin-right: 8px; text-decoration: none;
+}
+.ai-preview .hl-badge { background: #fdeaea; color: #cc0000; margin-left: 8px; }
+.ai-actions { display: flex; gap: 10px; }

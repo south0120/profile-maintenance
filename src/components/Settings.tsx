@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useStore } from '../store';
 import { Agency } from '../types';
 import { exportBackup, importBackup } from '../backup';
+import { getApiKey, saveApiKey } from '../ai';
 
 export function Settings() {
   const store = useStore();
@@ -55,6 +56,18 @@ export function Settings() {
         </button>
       </div>
 
+      <h2>AI設定</h2>
+      <div className="form-section">
+        <p className="hint">
+          経歴の「営業先向けAI提案」機能に使う Anthropic APIキーを登録します（
+          <a href="https://console.anthropic.com/" target="_blank" rel="noreferrer">
+            console.anthropic.com
+          </a>
+          で発行、従量課金）。キーはこのPCのブラウザ内にのみ保存され、バックアップZIPには含まれません。
+        </p>
+        <ApiKeyField />
+      </div>
+
       <h2>バックアップ</h2>
       <div className="form-section">
         <p className="hint">
@@ -100,6 +113,36 @@ export function Settings() {
           </label>
         </div>
       </div>
+    </div>
+  );
+}
+
+function ApiKeyField() {
+  const [key, setKey] = useState(getApiKey());
+  const [saved, setSaved] = useState(false);
+  return (
+    <div className="form-row">
+      <label className="field wide">
+        <span>Anthropic APIキー</span>
+        <input
+          type="password"
+          value={key}
+          placeholder="sk-ant-..."
+          onChange={(e) => {
+            setKey(e.target.value);
+            setSaved(false);
+          }}
+        />
+      </label>
+      <button
+        className="primary"
+        onClick={() => {
+          saveApiKey(key);
+          setSaved(true);
+        }}
+      >
+        {saved ? '保存済み' : 'キーを保存'}
+      </button>
     </div>
   );
 }

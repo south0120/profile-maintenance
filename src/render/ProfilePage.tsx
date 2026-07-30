@@ -119,7 +119,7 @@ function CareerListEl({ el, talent }: { el: CareerListElement; talent: Talent })
   return (
     <div style={{ ...rectCss(el), ...textStyleCss(el.style), overflow: 'hidden' }}>
       {el.categories.map((cat) => {
-        const items = talent.careers.filter((c) => c.category === cat);
+        const items = talent.careers.filter((c) => c.category === cat && !c.hidden);
         if (items.length === 0) return null;
         return (
           <div key={cat} style={{ marginBottom: '1.2mm' }}>

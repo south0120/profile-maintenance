@@ -9,7 +9,8 @@ import {
   Talent,
   VideoLink,
 } from '../types';
-import { uid } from '../model';
+import { formatCareer, uid } from '../model';
+import { CareerProposal, proposeCareerArrangement } from '../ai';
 
 type Tab = 'basic' | 'photos' | 'careers' | 'other';
 
@@ -364,11 +365,14 @@ function CareerTab({ talent, patch }: { talent: Talent; patch: (p: Partial<Talen
   return (
     <div className="form-section">
       <p className="hint">
-        表示はカテゴリごとにまとめられます。「強調」にチェックすると赤字太字で目立たせます（最新作など）。
+        経歴は削除せず「ストック」として貯めておき、「表示」チェックでプロフィールへの掲載を切り替えます。
+        「強調」にチェックすると赤字太字で目立たせます（最新作など）。
       </p>
+      <AiArrangePanel talent={talent} patch={patch} />
       <table className="career-table">
         <thead>
           <tr>
+            <th>表示</th>
             <th>カテゴリ</th>
             <th>年</th>
             <th>作品名</th>
@@ -382,7 +386,14 @@ function CareerTab({ talent, patch }: { talent: Talent; patch: (p: Partial<Talen
         </thead>
         <tbody>
           {talent.careers.map((c, i) => (
-            <tr key={c.id} className={c.is_highlight ? 'hl' : ''}>
+            <tr key={c.id} className={`${c.is_highlight ? 'hl' : ''} ${c.hidden ? 'row-hidden' : ''}`}>
+              <td className="center">
+                <input
+                  type="checkbox"
+                  checked={!c.hidden}
+                  onChange={(e) => update(i, { hidden: !e.target.checked })}
+                />
+              </td>
               <td>
                 <select
                   value={c.category}
@@ -447,6 +458,93 @@ function CareerTab({ talent, patch }: { talent: Talent; patch: (p: Partial<Talen
       >
         ＋ 経歴を追加
       </button>
+    </div>
+  );
+}
+
+// 営業先の説明をもとに、AIが経歴の選抜・並べ替え・強調を提案するパネル。
+// 提案は必ず人が内容を確認して「反映」した上で、さらに「保存する」で確定される二段構え。
+function AiArrangePanel({ talent, patch }: { talent: Talent; patch: (p: Partial<Talent>) => void }) {
+  const [target, setTarget] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const [proposal, setProposal] = useState<CareerProposal | null>(null);
+
+  async function run() {
+    setBusy(true);
+    setError('');
+    setProposal(null);
+    try {
+      const p = await proposeCareerArrangement(talent, target.trim());
+      setProposal(p);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function apply() {
+    if (!proposal) return;
+    const byId = new Map(talent.careers.map((c) => [c.id, c]));
+    const careers: Career[] = [];
+    for (const item of proposal.items) {
+      const c = byId.get(item.id);
+      if (c) careers.push({ ...c, hidden: item.hidden, is_highlight: item.is_highlight });
+    }
+    patch({ careers });
+    setProposal(null);
+    setTarget('');
+  }
+
+  const byId = new Map(talent.careers.map((c) => [c.id, c]));
+
+  return (
+    <div className="ai-panel">
+      <h4>営業先に合わせてAIが選抜・並べ替え</h4>
+      <p className="hint">
+        営業先や用途を書くと、経歴ストック全体からAIが「表示する経歴・並び順・強調」を提案します。
+        内容を確認してから反映してください（経歴の文面は変更されません）。
+      </p>
+      <div className="ai-input-row">
+        <input
+          value={target}
+          placeholder="例: CM中心の広告代理店向け。明るく爽やかな印象を推したい"
+          onChange={(e) => setTarget(e.target.value)}
+          disabled={busy}
+        />
+        <button className="primary" onClick={run} disabled={busy || !target.trim()}>
+          {busy ? 'AIが考え中…' : 'AIに提案させる'}
+        </button>
+      </div>
+      {error && <p className="ai-error">{error}</p>}
+
+      {proposal && (
+        <div className="ai-proposal">
+          <p className="ai-reason">
+            <strong>提案の方針:</strong> {proposal.reason}
+          </p>
+          <ul className="ai-preview">
+            {proposal.items.map((item) => {
+              const c = byId.get(item.id);
+              if (!c) return null;
+              return (
+                <li key={item.id} className={item.hidden ? 'off' : item.is_highlight ? 'hl' : ''}>
+                  <span className="badge">{item.hidden ? '非表示' : c.category}</span>
+                  {formatCareer(c).split('\n')[0]}
+                  {item.is_highlight && !item.hidden && <span className="badge hl-badge">強調</span>}
+                </li>
+              );
+            })}
+          </ul>
+          <div className="ai-actions">
+            <button className="primary" onClick={apply}>
+              この案を反映（保存前に確認できます）
+            </button>
+            <button onClick={() => setProposal(null)}>破棄</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

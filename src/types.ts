@@ -12,6 +12,7 @@ export interface Career {
   director_or_station?: string; // 監督名 or 局名
   note?: string; // 補足（映画祭入選など）
   is_highlight?: boolean; // 赤字太字で強調
+  hidden?: boolean; // ストックには残すがプロフィールには表示しない
 }
 
 export interface VideoLink {
