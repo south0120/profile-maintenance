@@ -190,6 +190,10 @@ export interface Template {
   page: { w: number; h: number }; // mm
   elements: TemplateElement[];
   updated_at: string;
+  // 標準テンプレートの版数。アプリ更新時、未編集(modified=false)の標準テンプレートを自動更新するために使う
+  factory_rev?: number;
+  // ユーザーがエディタで保存したことがあるか（trueなら自動更新しない）
+  modified?: boolean;
 }
 
 // テキスト要素で選べるデータ項目

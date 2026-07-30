@@ -69,10 +69,30 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       templatesV = defaultTemplates();
       if (legacyTpl) {
         templatesV = templatesV.map((t) =>
-          t.id === legacyTpl.id ? { ...legacyTpl, name: t.name } : t,
+          t.id === legacyTpl.id ? { ...legacyTpl, name: t.name, modified: true } : t,
         );
       }
       await storage.saveTemplates(templatesV);
+    } else {
+      // アプリ更新で標準テンプレートが改良された場合、未編集(modified≠true)のものだけ差し替える
+      const factories = defaultTemplates();
+      let upgraded = false;
+      templatesV = templatesV.map((st) => {
+        const f = factories.find((x) => x.id === st.id);
+        if (f && !st.modified && (f.factory_rev ?? 1) > (st.factory_rev ?? 1)) {
+          upgraded = true;
+          return f;
+        }
+        return st;
+      });
+      // 新しく追加された標準テンプレートがあれば末尾に足す
+      for (const f of factories) {
+        if (!templatesV.some((x) => x.id === f.id)) {
+          templatesV.push(f);
+          upgraded = true;
+        }
+      }
+      if (upgraded) await storage.saveTemplates(templatesV);
     }
     let talentsV = ts;
     if (ts.length === 0 && !a) {
@@ -108,7 +128,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         setAgency(a);
       },
       async saveTemplate(t) {
-        const next = { ...t, updated_at: new Date().toISOString() };
+        const next = { ...t, modified: true, updated_at: new Date().toISOString() };
         const arr = templates.some((x) => x.id === next.id)
           ? templates.map((x) => (x.id === next.id ? next : x))
           : [...templates, next];

@@ -4,7 +4,7 @@ import { Talent, Template, TemplateElement } from './types';
 // ---- 標準テンプレート（写真1枚/2枚/3枚） ----
 // 実物サンプル(A4縦1枚)のレイアウトを基本に、写真枠の数だけ変えた3パターンを同梱する。
 
-function headerElements(): TemplateElement[] {
+function nameHeader(): TemplateElement[] {
   return [
     {
       id: 'name',
@@ -14,6 +14,12 @@ function headerElements(): TemplateElement[] {
       style: { font: 'serif', size: 27, bold: true, align: 'center' },
     },
     { id: 'rule', type: 'line', rect: { x: 15, y: 24.5, w: 180, h: 0.4 }, color: '#555555' },
+  ];
+}
+
+function headerElements(): TemplateElement[] {
+  return [
+    ...nameHeader(),
     {
       id: 'birth',
       type: 'text',
@@ -110,10 +116,96 @@ export function defaultTemplates(): Template[] {
       name: '写真1枚',
       page: { w: 210, h: 297 },
       updated_at: now,
+      factory_rev: 2,
       elements: [
-        ...headerElements(),
-        { id: 'photo1', type: 'photo', slot: 'bust_up', rect: { x: 65, y: 56, w: 80, h: 107 } },
-        ...tailElements(166),
+        ...nameHeader(),
+        // 写真は左に寄せ、右側の空きに基本情報・自己紹介・動画リンクのボックスを配置
+        { id: 'photo1', type: 'photo', slot: 'bust_up', rect: { x: 14, y: 30, w: 86, h: 115 } },
+        {
+          id: 'birth',
+          type: 'text',
+          binding: 'basic_birth',
+          rect: { x: 108, y: 31, w: 94, h: 6.5 },
+          style: { font: 'serif', size: 11, align: 'left' },
+        },
+        {
+          id: 'body',
+          type: 'text',
+          binding: 'basic_body',
+          rect: { x: 108, y: 38, w: 94, h: 6.5 },
+          style: { font: 'serif', size: 11, align: 'left' },
+        },
+        {
+          id: 'size',
+          type: 'text',
+          binding: 'basic_size',
+          rect: { x: 108, y: 45, w: 94, h: 8 },
+          style: { font: 'serif', size: 10, align: 'left' },
+        },
+        {
+          id: 'hobby',
+          type: 'text',
+          binding: 'basic_hobby',
+          rect: { x: 108, y: 53, w: 94, h: 9 },
+          style: { font: 'serif', size: 10, align: 'left', lineHeight: 1.4 },
+        },
+        {
+          id: 'birthplace',
+          type: 'text',
+          binding: 'birthplace',
+          rect: { x: 108, y: 62, w: 94, h: 6 },
+          style: { font: 'serif', size: 10, align: 'left' },
+        },
+        {
+          id: 'intro-label',
+          type: 'text',
+          text: '【自己紹介】',
+          rect: { x: 108, y: 72, w: 40, h: 5 },
+          style: { font: 'sans', size: 9, bold: true, align: 'left' },
+        },
+        {
+          id: 'intro',
+          type: 'text',
+          binding: 'self_intro',
+          rect: { x: 108, y: 78, w: 94, h: 36 },
+          style: { font: 'sans', size: 8.5, align: 'left', lineHeight: 1.6 },
+        },
+        {
+          id: 'links',
+          type: 'links',
+          bordered: true,
+          rect: { x: 108, y: 119, w: 94, h: 24 },
+          style: { font: 'sans', size: 8, align: 'left', lineHeight: 1.6 },
+        },
+        {
+          id: 'act-label',
+          type: 'text',
+          text: '【最新の活動状況】',
+          rect: { x: 10, y: 150, w: 60, h: 6 },
+          style: { font: 'sans', size: 10.5, bold: true, align: 'left' },
+        },
+        {
+          id: 'career-left',
+          type: 'career_list',
+          categories: ['映画'],
+          rect: { x: 10, y: 157, w: 98, h: 121 },
+          style: { font: 'sans', size: 8, align: 'left', lineHeight: 1.55 },
+          highlightColor: '#cc0000',
+        },
+        {
+          id: 'career-right',
+          type: 'career_list',
+          categories: ['TV', 'CM', 'MV'],
+          rect: { x: 114, y: 157, w: 86, h: 121 },
+          style: { font: 'sans', size: 8, align: 'left', lineHeight: 1.6 },
+          highlightColor: '#cc0000',
+        },
+        {
+          id: 'footer',
+          type: 'footer',
+          rect: { x: 8, y: 282, w: 194, h: 12 },
+          style: { font: 'sans', size: 8, align: 'left' },
+        },
       ],
     },
     {
