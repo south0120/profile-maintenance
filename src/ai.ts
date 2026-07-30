@@ -5,7 +5,6 @@ import { Talent } from './types';
 // このモジュールは「提案の生成」のみを行い、保存は呼び出し側のUIが担う。
 
 const API_KEY_STORAGE = 'anthropic_api_key';
-const MODEL_STORAGE = 'anthropic_model';
 
 export function getApiKey(): string {
   return localStorage.getItem(API_KEY_STORAGE) ?? '';
@@ -16,27 +15,21 @@ export function saveApiKey(key: string): void {
   else localStorage.removeItem(API_KEY_STORAGE);
 }
 
-// 利用モデル。日常業務の選抜・収集は軽量モデルで十分なため、既定はHaiku。
-export const AI_MODELS = [
-  { id: 'claude-haiku-4-5', label: '軽量・最安（Haiku 4.5）※おすすめ' },
-  { id: 'claude-sonnet-5', label: 'バランス（Sonnet 5）' },
-  { id: 'claude-opus-5', label: '最高精度（Opus 5）' },
-];
+// AI構成は提供側（保守側）で管理する。ユーザー画面には公開しない。
+// - 選抜・並べ替え: 判断結果を人がプレビュー確認できるため軽量モデルで運用
+// - Web収集: 同姓同名判別・確度判定など取捨選択の判断力と最新検索ツール対応が必要なためSonnet
+// 保守での変更はこの定数のみ修正してデプロイする。
+const AI_CONFIG = {
+  arrangeModel: 'claude-haiku-4-5',
+  collectModel: 'claude-sonnet-5',
+} as const;
 
-export function getModel(): string {
-  const m = localStorage.getItem(MODEL_STORAGE);
-  return AI_MODELS.some((x) => x.id === m) ? (m as string) : 'claude-haiku-4-5';
+function getModel(): string {
+  return AI_CONFIG.arrangeModel;
 }
 
-export function saveModel(model: string): void {
-  localStorage.setItem(MODEL_STORAGE, model);
-}
-
-// Web収集はサーバーサイド検索ツールの対応と情報の取捨選択の判断力が必要なため、
-// Haiku選択時もSonnet 5で実行する（選抜は選択モデルをそのまま使用）。
-export function getCollectModel(): string {
-  const m = getModel();
-  return m === 'claude-haiku-4-5' ? 'claude-sonnet-5' : m;
+function getCollectModel(): string {
+  return AI_CONFIG.collectModel;
 }
 
 export interface CareerProposalItem {
