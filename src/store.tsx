@@ -2,18 +2,19 @@ import React, { createContext, useContext, useEffect, useMemo, useState } from '
 import { storage } from './storage/local';
 import { Agency, PhotoMeta, Talent, Template } from './types';
 import { emptyAgency } from './model';
-import { defaultTemplate, sampleTalent } from './defaultData';
+import { defaultTemplates, sampleTalent } from './defaultData';
 
 interface Store {
   ready: boolean;
   agency: Agency;
-  template: Template;
+  templates: Template[];
   talents: Talent[];
   photos: PhotoMeta[];
   blobUrl: (id?: string) => string | undefined;
 
   saveAgency(a: Agency): Promise<void>;
-  saveTemplate(t: Template): Promise<void>;
+  saveTemplate(t: Template): Promise<void>; // templates配列内の該当IDを更新
+  resetTemplate(id: string): Promise<Template | undefined>; // 標準の初期状態に戻す
   saveTalent(t: Talent): Promise<void>;
   deleteTalent(id: string): Promise<void>;
   addPhoto(talentId: string, file: File, role: PhotoMeta['role']): Promise<PhotoMeta>;
@@ -34,7 +35,7 @@ export function useStore(): Store {
 export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [ready, setReady] = useState(false);
   const [agency, setAgency] = useState<Agency>(emptyAgency());
-  const [template, setTemplate] = useState<Template>(defaultTemplate());
+  const [templates, setTemplates] = useState<Template[]>(defaultTemplates());
   const [talents, setTalents] = useState<Talent[]>([]);
   const [photos, setPhotos] = useState<PhotoMeta[]>([]);
   const [urls, setUrls] = useState<Record<string, string>>({});
@@ -54,16 +55,26 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   }
 
   async function reload() {
-    const [a, tpl, ts, ps] = await Promise.all([
+    const [a, tpls, legacyTpl, ts, ps] = await Promise.all([
       storage.loadAgency(),
+      storage.loadTemplates(),
       storage.loadTemplate(),
       storage.listTalents(),
       storage.listPhotos(),
     ]);
     const agencyV = a ?? emptyAgency();
-    const templateV = tpl ?? defaultTemplate();
+    // テンプレート: 新形式(配列)がなければ標準3種を投入。旧形式(単一)があれば「写真2枚」を置き換えて引き継ぐ
+    let templatesV = tpls;
+    if (!templatesV || templatesV.length === 0) {
+      templatesV = defaultTemplates();
+      if (legacyTpl) {
+        templatesV = templatesV.map((t) =>
+          t.id === legacyTpl.id ? { ...legacyTpl, name: t.name } : t,
+        );
+      }
+      await storage.saveTemplates(templatesV);
+    }
     let talentsV = ts;
-    if (!tpl) await storage.saveTemplate(templateV);
     if (ts.length === 0 && !a) {
       // 初回起動: サンプルデータを投入
       const s = sampleTalent();
@@ -71,7 +82,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       talentsV = [s];
     }
     setAgency(agencyV);
-    setTemplate(templateV);
+    setTemplates(templatesV);
     setTalents(talentsV.sort((x, y) => (x.kana ?? x.stage_name).localeCompare(y.kana ?? y.stage_name, 'ja')));
     setPhotos(ps);
     await loadBlobUrls(ps, agencyV.logoBlobId);
@@ -87,7 +98,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     () => ({
       ready,
       agency,
-      template,
+      templates,
       talents,
       photos,
       blobUrl: (id) => (id ? urls[id] : undefined),
@@ -98,8 +109,19 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       },
       async saveTemplate(t) {
         const next = { ...t, updated_at: new Date().toISOString() };
-        await storage.saveTemplate(next);
-        setTemplate(next);
+        const arr = templates.some((x) => x.id === next.id)
+          ? templates.map((x) => (x.id === next.id ? next : x))
+          : [...templates, next];
+        await storage.saveTemplates(arr);
+        setTemplates(arr);
+      },
+      async resetTemplate(id) {
+        const factory = defaultTemplates().find((t) => t.id === id);
+        if (!factory) return undefined;
+        const arr = templates.map((x) => (x.id === id ? factory : x));
+        await storage.saveTemplates(arr);
+        setTemplates(arr);
+        return factory;
       },
       async saveTalent(t) {
         const next = { ...t, updated_at: new Date().toISOString() };
@@ -162,7 +184,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       },
       reload,
     }),
-    [ready, agency, template, talents, photos, urls],
+    [ready, agency, templates, talents, photos, urls],
   );
 
   return <StoreContext.Provider value={store}>{children}</StoreContext.Provider>;

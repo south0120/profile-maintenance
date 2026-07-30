@@ -3,16 +3,16 @@ import { storage } from './storage/local';
 
 // データ一式をZIPに書き出し（データフォルダ丸ごとのバックアップに相当）
 export async function exportBackup(): Promise<void> {
-  const [agency, template, talents, photos] = await Promise.all([
+  const [agency, templates, talents, photos] = await Promise.all([
     storage.loadAgency(),
-    storage.loadTemplate(),
+    storage.loadTemplates(),
     storage.listTalents(),
     storage.listPhotos(),
   ]);
   const zip = new JSZip();
   zip.file(
     'data.json',
-    JSON.stringify({ version: 1, exported_at: new Date().toISOString(), agency, template, talents, photos }, null, 2),
+    JSON.stringify({ version: 2, exported_at: new Date().toISOString(), agency, templates, talents, photos }, null, 2),
   );
   const blobsDir = zip.folder('blobs')!;
   const blobIds = new Set<string>(photos.map((p) => p.id));
@@ -39,7 +39,8 @@ export async function importBackup(file: File): Promise<void> {
   const data = JSON.parse(await dataFile.async('string'));
 
   if (data.agency) await storage.saveAgency(data.agency);
-  if (data.template) await storage.saveTemplate(data.template);
+  if (data.templates) await storage.saveTemplates(data.templates);
+  else if (data.template) await storage.saveTemplates([data.template]); // 旧形式
   for (const t of data.talents ?? []) await storage.saveTalent(t);
   for (const p of data.photos ?? []) await storage.savePhotoMeta(p);
 

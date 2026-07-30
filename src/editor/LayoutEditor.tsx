@@ -13,26 +13,39 @@ import {
   TEXT_BINDINGS,
   TextStyle,
 } from '../types';
-import { sampleTalent } from '../defaultData';
+import { resolveTemplate, sampleTalent } from '../defaultData';
 import { uid } from '../model';
 
 type Dir = { n?: boolean; s?: boolean; e?: boolean; w?: boolean };
 
 const SNAP = 0.5; // mm
+const MAGNET = 1.2; // mm 吸着距離
 
 function snap(v: number): number {
   return Math.round(v / SNAP) * SNAP;
 }
 
-export function LayoutEditor() {
+function deepCopy<T>(v: T): T {
+  return JSON.parse(JSON.stringify(v)) as T;
+}
+
+// talentId 指定時は「タレント個別レイアウト」の編集、未指定時は共有テンプレートの編集
+export function LayoutEditor({ talentId, navigate }: { talentId?: string; navigate: (h: string) => void }) {
   const store = useStore();
-  const [tpl, setTpl] = useState<Template>(() => JSON.parse(JSON.stringify(store.template)));
+  const talent = talentId ? store.talents.find((t) => t.id === talentId) : undefined;
+
+  const [editingTplId, setEditingTplId] = useState<string>(store.templates[0]?.id ?? 'eigyo');
+  const [tpl, setTpl] = useState<Template>(() =>
+    talent
+      ? deepCopy(resolveTemplate(talent, store.templates))
+      : deepCopy(store.templates[0]),
+  );
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [zoom, setZoom] = useState(0.85);
   const [previewTalentId, setPreviewTalentId] = useState<string | ''>('');
   const [dirty, setDirty] = useState(false);
-  // PowerPoint風の整列ガイド（ページ中央に吸着したとき表示）
-  const [guides, setGuides] = useState<{ v: boolean; h: boolean }>({ v: false, h: false });
+  // 吸着ガイド（ページ中央 or 他要素の左端/上端）
+  const [guides, setGuides] = useState<{ x: number | null; y: number | null }>({ x: null, y: null });
   const dragRef = useRef<{
     id: string;
     startX: number;
@@ -42,8 +55,58 @@ export function LayoutEditor() {
   } | null>(null);
   const demo = useMemo(() => sampleTalent(), []);
 
-  const previewTalent = store.talents.find((t) => t.id === previewTalentId) ?? store.talents[0] ?? demo;
+  const previewTalent = talent ?? store.talents.find((t) => t.id === previewTalentId) ?? store.talents[0] ?? demo;
   const selected = tpl.elements.find((e) => e.id === selectedId) ?? null;
+
+  function switchTemplate(id: string) {
+    if (dirty && !window.confirm('未保存の変更があります。破棄して切り替えますか？')) return;
+    const t = store.templates.find((x) => x.id === id);
+    if (!t) return;
+    setEditingTplId(id);
+    setTpl(deepCopy(t));
+    setSelectedId(null);
+    setDirty(false);
+  }
+
+  function applyTemplateToTalent(id: string) {
+    const t = store.templates.find((x) => x.id === id);
+    if (!t) return;
+    if (!window.confirm(`テンプレート「${t.name}」を反映します。現在の配置は置き換わります。よろしいですか？`)) return;
+    setTpl(deepCopy(t));
+    setSelectedId(null);
+    setDirty(true);
+  }
+
+  async function resetToFactory() {
+    if (!window.confirm('このテンプレートを標準の初期配置に戻します。よろしいですか？')) return;
+    const factory = await store.resetTemplate(editingTplId);
+    if (factory) {
+      setTpl(deepCopy(factory));
+      setSelectedId(null);
+      setDirty(false);
+    } else {
+      alert('このテンプレートには標準の初期配置がありません。');
+    }
+  }
+
+  async function resetTalentToTemplate() {
+    if (!talent) return;
+    if (!window.confirm('このタレント専用の調整を破棄して、テンプレートのレイアウトに戻します。よろしいですか？')) return;
+    await store.saveTalent({ ...talent, layout: undefined });
+    const base = store.templates.find((x) => x.id === talent.template_id) ?? store.templates.find((x) => x.id === 'eigyo') ?? store.templates[0];
+    setTpl(deepCopy(base));
+    setSelectedId(null);
+    setDirty(false);
+  }
+
+  async function save() {
+    if (talent) {
+      await store.saveTalent({ ...talent, layout: deepCopy(tpl) });
+    } else {
+      await store.saveTemplate({ ...tpl, id: editingTplId });
+    }
+    setDirty(false);
+  }
 
   function updateElement(id: string, patch: Partial<TemplateElement>) {
     setTpl((prev) => ({
@@ -82,14 +145,31 @@ export function LayoutEditor() {
     if (!d.dir) {
       x = snap(d.orig.x + dx);
       y = snap(d.orig.y + dy);
-      // ページ中央への吸着（PowerPointのスマートガイド風）
+      // マグネット吸着: ①他要素の左端・上端 ②ページ中央
+      let gx: number | null = null;
+      let gy: number | null = null;
+      for (const o of tpl.elements) {
+        if (o.id === d.id) continue;
+        if (gx === null && Math.abs(x - o.rect.x) < MAGNET) {
+          x = o.rect.x;
+          gx = o.rect.x;
+        }
+        if (gy === null && Math.abs(y - o.rect.y) < MAGNET) {
+          y = o.rect.y;
+          gy = o.rect.y;
+        }
+      }
       const cx = tpl.page.w / 2;
       const cy = tpl.page.h / 2;
-      const vHit = Math.abs(x + w / 2 - cx) < 1.2;
-      const hHit = Math.abs(y + h / 2 - cy) < 1.2;
-      if (vHit) x = cx - w / 2;
-      if (hHit) y = cy - h / 2;
-      setGuides({ v: vHit, h: hHit });
+      if (gx === null && Math.abs(x + w / 2 - cx) < MAGNET) {
+        x = cx - w / 2;
+        gx = cx;
+      }
+      if (gy === null && Math.abs(y + h / 2 - cy) < MAGNET) {
+        y = cy - h / 2;
+        gy = cy;
+      }
+      setGuides({ x: gx, y: gy });
     } else {
       if (d.dir.e) w = Math.max(2, snap(d.orig.w + dx));
       if (d.dir.s) h = Math.max(1, snap(d.orig.h + dy));
@@ -109,7 +189,7 @@ export function LayoutEditor() {
 
   function onPointerUp() {
     dragRef.current = null;
-    setGuides({ v: false, h: false });
+    setGuides({ x: null, y: null });
   }
 
   function onKeyDown(e: React.KeyboardEvent) {
@@ -161,11 +241,6 @@ export function LayoutEditor() {
     updateElement(id, { z: Math.max(0, (el.z ?? 1) + delta) });
   }
 
-  async function save() {
-    await store.saveTemplate(tpl);
-    setDirty(false);
-  }
-
   useEffect(() => {
     const before = (e: BeforeUnloadEvent) => {
       if (dirty) e.preventDefault();
@@ -174,21 +249,60 @@ export function LayoutEditor() {
     return () => window.removeEventListener('beforeunload', before);
   }, [dirty]);
 
+  if (talentId && !talent) return <p className="hint">タレントが見つかりません。</p>;
+
   return (
     <div className="editor-layout">
       <div className="editor-toolbar">
-        <strong>レイアウトエディタ</strong>
-        <span className="tpl-name">{tpl.name}</span>
-        <label>
-          表示データ:
-          <select value={previewTalentId} onChange={(e) => setPreviewTalentId(e.target.value)}>
-            {store.talents.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.stage_name || '(名称未設定)'}
-              </option>
-            ))}
-          </select>
-        </label>
+        {talent ? (
+          <>
+            <button onClick={() => navigate(`#/preview/${talent.id}`)}>← プレビューへ</button>
+            <strong>{talent.stage_name} 専用レイアウト</strong>
+            <label>
+              テンプレートを反映:
+              <select
+                value=""
+                onChange={(e) => {
+                  if (e.target.value) applyTemplateToTalent(e.target.value);
+                  e.target.value = '';
+                }}
+              >
+                <option value="">選択…</option>
+                {store.templates.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <button onClick={resetTalentToTemplate}>テンプレートに戻す</button>
+          </>
+        ) : (
+          <>
+            <strong>レイアウトエディタ</strong>
+            <label>
+              テンプレート:
+              <select value={editingTplId} onChange={(e) => switchTemplate(e.target.value)}>
+                {store.templates.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <button onClick={resetToFactory}>標準に戻す</button>
+            <label>
+              表示データ:
+              <select value={previewTalentId} onChange={(e) => setPreviewTalentId(e.target.value)}>
+                {store.talents.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.stage_name || '(名称未設定)'}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </>
+        )}
         <label>
           倍率:
           <select value={zoom} onChange={(e) => setZoom(Number(e.target.value))}>
@@ -208,7 +322,7 @@ export function LayoutEditor() {
           <button onClick={() => addElement('links')}>動画リンク</button>
         </div>
         <button className="primary" onClick={save} disabled={!dirty}>
-          {dirty ? 'テンプレートを保存' : '保存済み'}
+          {dirty ? (talent ? 'このタレント用に保存' : 'テンプレートを保存') : '保存済み'}
         </button>
       </div>
 
@@ -245,19 +359,19 @@ export function LayoutEditor() {
                   blobUrl={store.blobUrl}
                 />
               ))}
-              {/* 整列ガイド */}
-              {guides.v && (
+              {/* 吸着ガイド */}
+              {guides.x !== null && (
                 <div
                   style={{
-                    position: 'absolute', left: `${tpl.page.w / 2}mm`, top: 0,
+                    position: 'absolute', left: `${guides.x}mm`, top: 0,
                     width: 1, height: '100%', background: '#f43f8e', zIndex: 999,
                   }}
                 />
               )}
-              {guides.h && (
+              {guides.y !== null && (
                 <div
                   style={{
-                    position: 'absolute', top: `${tpl.page.h / 2}mm`, left: 0,
+                    position: 'absolute', top: `${guides.y}mm`, left: 0,
                     height: 1, width: '100%', background: '#f43f8e', zIndex: 999,
                   }}
                 />
@@ -344,7 +458,8 @@ function PropertyPanel({
         <p className="hint">
           要素をクリックして選択すると、ここで位置・サイズ・書式を調整できます。
           <br />
-          ドラッグで移動、角のハンドルで大きさ変更、矢印キーで微調整（Shift+矢印で大きく移動）、Delete で削除。
+          ドラッグで移動（他の枠の左端・上端やページ中央にピタッと吸着します）、角のハンドルで大きさ変更、
+          矢印キーで微調整（Shift+矢印で大きく移動）、Delete で削除。
         </p>
       </div>
     );

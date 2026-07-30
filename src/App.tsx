@@ -28,9 +28,11 @@ function Shell() {
   let page: React.ReactNode;
   const mTalent = hash.match(/^#\/talent\/(.+)$/);
   const mPreview = hash.match(/^#\/preview\/(.+)$/);
+  const mLayout = hash.match(/^#\/layout\/(.+)$/);
   if (mTalent) page = <TalentEdit id={mTalent[1]} navigate={navigate} />;
   else if (mPreview) page = <Preview id={mPreview[1]} navigate={navigate} />;
-  else if (hash === '#/editor') page = <LayoutEditor />;
+  else if (mLayout) page = <LayoutEditor talentId={mLayout[1]} navigate={navigate} />;
+  else if (hash === '#/editor') page = <LayoutEditor navigate={navigate} />;
   else if (hash === '#/settings') page = <Settings />;
   else page = <TalentList navigate={navigate} />;
 

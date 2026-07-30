@@ -1,104 +1,157 @@
 import { uid } from './model';
-import { Talent, Template } from './types';
+import { Talent, Template, TemplateElement } from './types';
 
-// 営業用テンプレート: 実物サンプル(A4縦1枚)のレイアウトを再現
-export function defaultTemplate(): Template {
-  return {
-    id: 'eigyo',
-    name: '営業用（1枚）',
-    page: { w: 210, h: 297 },
-    updated_at: new Date().toISOString(),
-    elements: [
-      {
-        id: 'name',
-        type: 'text',
-        binding: 'name_full',
-        rect: { x: 25, y: 8, w: 160, h: 15 },
-        style: { font: 'serif', size: 27, bold: true, align: 'center' },
-      },
-      { id: 'rule', type: 'line', rect: { x: 15, y: 24.5, w: 180, h: 0.4 }, color: '#555555' },
-      {
-        id: 'birth',
-        type: 'text',
-        binding: 'basic_birth',
-        rect: { x: 25, y: 27, w: 160, h: 6.5 },
-        style: { font: 'serif', size: 12, align: 'center' },
-      },
-      {
-        id: 'body',
-        type: 'text',
-        binding: 'basic_body',
-        rect: { x: 25, y: 33.5, w: 160, h: 6.5 },
-        style: { font: 'serif', size: 12, align: 'center' },
-      },
-      {
-        id: 'size',
-        type: 'text',
-        binding: 'basic_size',
-        rect: { x: 25, y: 40, w: 160, h: 6.5 },
-        style: { font: 'serif', size: 12, align: 'center' },
-      },
-      {
-        id: 'hobby',
-        type: 'text',
-        binding: 'basic_hobby',
-        rect: { x: 25, y: 46.5, w: 160, h: 6.5 },
-        style: { font: 'serif', size: 12, align: 'center' },
-      },
-      { id: 'photo1', type: 'photo', slot: 'bust_up', rect: { x: 20, y: 56, w: 80, h: 107 } },
-      { id: 'photo2', type: 'photo', slot: 'full_body', rect: { x: 112, y: 56, w: 80, h: 107 } },
-      {
-        id: 'act-label',
-        type: 'text',
-        text: '【最新の活動状況】',
-        rect: { x: 10, y: 166, w: 60, h: 6 },
-        style: { font: 'sans', size: 10.5, bold: true, align: 'left' },
-      },
-      {
-        id: 'career-left',
-        type: 'career_list',
-        categories: ['映画'],
-        rect: { x: 10, y: 173, w: 98, h: 77 },
-        style: { font: 'sans', size: 8, align: 'left', lineHeight: 1.55 },
-        highlightColor: '#cc0000',
-      },
-      {
-        id: 'career-right',
-        type: 'career_list',
-        categories: ['TV', 'CM', 'MV'],
-        rect: { x: 114, y: 173, w: 86, h: 62 },
-        style: { font: 'sans', size: 8, align: 'left', lineHeight: 1.6 },
-        highlightColor: '#cc0000',
-      },
-      {
-        id: 'intro-label',
-        type: 'text',
-        text: '【自己紹介】',
-        rect: { x: 10, y: 252, w: 40, h: 5 },
-        style: { font: 'sans', size: 8.5, bold: true, align: 'left' },
-      },
-      {
-        id: 'intro',
-        type: 'text',
-        binding: 'self_intro',
-        rect: { x: 10, y: 257, w: 96, h: 22 },
-        style: { font: 'sans', size: 7.5, align: 'left', lineHeight: 1.5 },
-      },
-      {
-        id: 'links',
-        type: 'links',
-        bordered: true,
-        rect: { x: 114, y: 252, w: 86, h: 22 },
-        style: { font: 'sans', size: 8, align: 'left', lineHeight: 1.6 },
-      },
-      {
-        id: 'footer',
-        type: 'footer',
-        rect: { x: 8, y: 282, w: 194, h: 12 },
-        style: { font: 'sans', size: 8, align: 'left' },
-      },
-    ],
-  };
+// ---- 標準テンプレート（写真1枚/2枚/3枚） ----
+// 実物サンプル(A4縦1枚)のレイアウトを基本に、写真枠の数だけ変えた3パターンを同梱する。
+
+function headerElements(): TemplateElement[] {
+  return [
+    {
+      id: 'name',
+      type: 'text',
+      binding: 'name_full',
+      rect: { x: 25, y: 8, w: 160, h: 15 },
+      style: { font: 'serif', size: 27, bold: true, align: 'center' },
+    },
+    { id: 'rule', type: 'line', rect: { x: 15, y: 24.5, w: 180, h: 0.4 }, color: '#555555' },
+    {
+      id: 'birth',
+      type: 'text',
+      binding: 'basic_birth',
+      rect: { x: 25, y: 27, w: 160, h: 6.5 },
+      style: { font: 'serif', size: 12, align: 'center' },
+    },
+    {
+      id: 'body',
+      type: 'text',
+      binding: 'basic_body',
+      rect: { x: 25, y: 33.5, w: 160, h: 6.5 },
+      style: { font: 'serif', size: 12, align: 'center' },
+    },
+    {
+      id: 'size',
+      type: 'text',
+      binding: 'basic_size',
+      rect: { x: 25, y: 40, w: 160, h: 6.5 },
+      style: { font: 'serif', size: 12, align: 'center' },
+    },
+    {
+      id: 'hobby',
+      type: 'text',
+      binding: 'basic_hobby',
+      rect: { x: 25, y: 46.5, w: 160, h: 6.5 },
+      style: { font: 'serif', size: 12, align: 'center' },
+    },
+  ];
+}
+
+// actY: 【最新の活動状況】見出しのY位置。経歴欄はそこから下部固定要素(252mm)まで
+function tailElements(actY: number): TemplateElement[] {
+  const listY = actY + 7;
+  return [
+    {
+      id: 'act-label',
+      type: 'text',
+      text: '【最新の活動状況】',
+      rect: { x: 10, y: actY, w: 60, h: 6 },
+      style: { font: 'sans', size: 10.5, bold: true, align: 'left' },
+    },
+    {
+      id: 'career-left',
+      type: 'career_list',
+      categories: ['映画'],
+      rect: { x: 10, y: listY, w: 98, h: 248 - listY },
+      style: { font: 'sans', size: 8, align: 'left', lineHeight: 1.55 },
+      highlightColor: '#cc0000',
+    },
+    {
+      id: 'career-right',
+      type: 'career_list',
+      categories: ['TV', 'CM', 'MV'],
+      rect: { x: 114, y: listY, w: 86, h: 235 - listY },
+      style: { font: 'sans', size: 8, align: 'left', lineHeight: 1.6 },
+      highlightColor: '#cc0000',
+    },
+    {
+      id: 'intro-label',
+      type: 'text',
+      text: '【自己紹介】',
+      rect: { x: 10, y: 252, w: 40, h: 5 },
+      style: { font: 'sans', size: 8.5, bold: true, align: 'left' },
+    },
+    {
+      id: 'intro',
+      type: 'text',
+      binding: 'self_intro',
+      rect: { x: 10, y: 257, w: 96, h: 22 },
+      style: { font: 'sans', size: 7.5, align: 'left', lineHeight: 1.5 },
+    },
+    {
+      id: 'links',
+      type: 'links',
+      bordered: true,
+      rect: { x: 114, y: 252, w: 86, h: 22 },
+      style: { font: 'sans', size: 8, align: 'left', lineHeight: 1.6 },
+    },
+    {
+      id: 'footer',
+      type: 'footer',
+      rect: { x: 8, y: 282, w: 194, h: 12 },
+      style: { font: 'sans', size: 8, align: 'left' },
+    },
+  ];
+}
+
+export function defaultTemplates(): Template[] {
+  const now = new Date().toISOString();
+  return [
+    {
+      id: 'photo1',
+      name: '写真1枚',
+      page: { w: 210, h: 297 },
+      updated_at: now,
+      elements: [
+        ...headerElements(),
+        { id: 'photo1', type: 'photo', slot: 'bust_up', rect: { x: 65, y: 56, w: 80, h: 107 } },
+        ...tailElements(166),
+      ],
+    },
+    {
+      id: 'eigyo',
+      name: '写真2枚',
+      page: { w: 210, h: 297 },
+      updated_at: now,
+      elements: [
+        ...headerElements(),
+        { id: 'photo1', type: 'photo', slot: 'bust_up', rect: { x: 20, y: 56, w: 80, h: 107 } },
+        { id: 'photo2', type: 'photo', slot: 'full_body', rect: { x: 112, y: 56, w: 80, h: 107 } },
+        ...tailElements(166),
+      ],
+    },
+    {
+      id: 'photo3',
+      name: '写真3枚',
+      page: { w: 210, h: 297 },
+      updated_at: now,
+      elements: [
+        ...headerElements(),
+        { id: 'photo1', type: 'photo', slot: 'bust_up', rect: { x: 12, y: 56, w: 60, h: 80 } },
+        { id: 'photo2', type: 'photo', slot: 'full_body', rect: { x: 75, y: 56, w: 60, h: 80 } },
+        { id: 'photo3', type: 'photo', slot: 'snap', rect: { x: 138, y: 56, w: 60, h: 80 } },
+        ...tailElements(142),
+      ],
+    },
+  ];
+}
+
+// タレントに適用されるレイアウトの解決: 個別調整 > 指定テンプレート > 写真2枚 > 先頭
+export function resolveTemplate(talent: Talent, templates: Template[]): Template {
+  if (talent.layout) return talent.layout;
+  return (
+    templates.find((t) => t.id === talent.template_id) ??
+    templates.find((t) => t.id === 'eigyo') ??
+    templates[0]
+  );
 }
 
 // 初回起動時のサンプルタレント（架空の人物・操作の練習用）

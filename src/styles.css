@@ -257,3 +257,11 @@ main { padding: 22px 24px; max-width: 1480px; margin: 0 auto; }
 .page-settings h2 { font-size: 16px; margin: 26px 0 10px; }
 .page-settings h2:first-child { margin-top: 0; }
 .page-settings .form-section { border-radius: var(--radius); }
+
+/* テンプレート・個別レイアウト */
+.pill {
+  display: inline-block; font-size: 12px; font-weight: 600;
+  background: var(--accent-soft); color: var(--accent);
+  border-radius: 99px; padding: 3px 10px;
+}
+.tpl-select { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); }

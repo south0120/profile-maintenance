@@ -65,6 +65,10 @@ export interface Talent {
   tags: string[];
   // Web収集の情報源（事務所HPのお知らせページ、本人のX/InstagramのURLなど）
   source_urls?: string[];
+  // 使用するテンプレートID（未指定なら標準）
+  template_id?: string;
+  // タレント個別のレイアウト調整（テンプレートのコピーを編集したもの。未設定ならテンプレートをそのまま使用）
+  layout?: Template;
   careers: Career[];
   video_links: VideoLink[];
   // 写真枠(role) -> 採用する写真ID

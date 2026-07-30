@@ -7,8 +7,9 @@ export interface StorageAdapter {
   loadAgency(): Promise<Agency | undefined>;
   saveAgency(a: Agency): Promise<void>;
 
-  loadTemplate(): Promise<Template | undefined>;
-  saveTemplate(t: Template): Promise<void>;
+  loadTemplate(): Promise<Template | undefined>; // 旧形式(単一)からの移行読み込み用
+  loadTemplates(): Promise<Template[] | undefined>;
+  saveTemplates(ts: Template[]): Promise<void>;
 
   listTalents(): Promise<Talent[]>;
   saveTalent(t: Talent): Promise<void>;

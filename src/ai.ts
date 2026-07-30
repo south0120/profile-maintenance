@@ -22,6 +22,7 @@ export function saveApiKey(key: string): void {
 const AI_CONFIG = {
   arrangeModel: 'claude-haiku-4-5',
   collectModel: 'claude-sonnet-5',
+  importModel: 'claude-sonnet-5', // 移行データの読み取りは精度優先
 } as const;
 
 function getModel(): string {
@@ -333,4 +334,145 @@ export async function collectCareersFromWeb(talent: Talent): Promise<CollectResu
     }));
 
   return { candidates, summary: parsed.summary ?? '' };
+}
+
+// ---- 既存プロフィール文面からのインポート（構造化） ----
+
+export interface ImportedCareer {
+  category: string;
+  year: string;
+  title: string;
+  episode?: string;
+  role_name?: string;
+  director_or_station?: string;
+  note?: string;
+}
+
+export interface ImportedTalent {
+  stage_name: string;
+  kana?: string;
+  romaji?: string;
+  gender?: string;
+  birthdate?: string;
+  birthplace?: string;
+  blood_type?: string;
+  height?: string;
+  weight?: string;
+  bust?: string;
+  waist?: string;
+  hip?: string;
+  shoe_size?: string;
+  head_size?: string;
+  clothing_size?: string;
+  hobbies_skills?: string[];
+  self_intro?: string;
+  careers: ImportedCareer[];
+}
+
+const IMPORT_SCHEMA = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['stage_name', 'careers'],
+  properties: {
+    stage_name: { type: 'string' },
+    kana: { type: 'string' },
+    romaji: { type: 'string' },
+    gender: { type: 'string' },
+    birthdate: { type: 'string' },
+    birthplace: { type: 'string' },
+    blood_type: { type: 'string' },
+    height: { type: 'string' },
+    weight: { type: 'string' },
+    bust: { type: 'string' },
+    waist: { type: 'string' },
+    hip: { type: 'string' },
+    shoe_size: { type: 'string' },
+    head_size: { type: 'string' },
+    clothing_size: { type: 'string' },
+    hobbies_skills: { type: 'array', items: { type: 'string' } },
+    self_intro: { type: 'string' },
+    careers: {
+      type: 'array',
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['category', 'year', 'title'],
+        properties: {
+          category: { type: 'string' },
+          year: { type: 'string' },
+          title: { type: 'string' },
+          episode: { type: 'string' },
+          role_name: { type: 'string' },
+          director_or_station: { type: 'string' },
+          note: { type: 'string' },
+        },
+      },
+    },
+  },
+};
+
+const IMPORT_PROMPT = `あなたはタレント事務所のデータ移行担当の補佐です。既存のプロフィール資料（WordやExcelからコピーした文面）を、タレントデータベースの項目に構造化してください。
+
+ルール:
+- 文面に書かれていることだけを使う。推測で補完しない。不明な項目は省略する（空文字を入れない）
+- 数値項目(height/weight/bust等)は数字のみ（単位cm/kgは除去）。例: "162cm" → "162"
+- birthdate は YYYY-MM-DD 形式。年だけ・不明なら省略
+- careers の category は「映画」「TV」「CM」「MV」「舞台」「その他」のいずれかに分類する
+- 経歴の1行に複数の情報（作品名・話数・役名・監督/局・補足）が含まれる場合は分解する
+- 出演歴・経歴に該当する行はすべて careers に含める（漏らさない）`;
+
+export async function importTalentFromText(text: string): Promise<ImportedTalent> {
+  const apiKey = getApiKey();
+  if (!apiKey) {
+    throw new Error('Anthropic APIキーが未設定です。「設定」画面のAI設定から登録してください。');
+  }
+  const client = new Anthropic({ apiKey, dangerouslyAllowBrowser: true });
+
+  let response;
+  try {
+    response = await client.beta.messages.create({
+      model: AI_CONFIG.importModel,
+      max_tokens: 16000,
+      betas: [],
+      output_config: { format: { type: 'json_schema', schema: IMPORT_SCHEMA } },
+      system: IMPORT_PROMPT,
+      messages: [{ role: 'user', content: `# 既存プロフィール文面\n${text}` }],
+    });
+  } catch (err) {
+    if (err instanceof Anthropic.AuthenticationError) {
+      throw new Error('APIキーが正しくありません。「設定」画面で確認してください。');
+    }
+    if (err instanceof Anthropic.RateLimitError) {
+      throw new Error('利用制限に達しました。しばらく待ってからお試しください。');
+    }
+    if (err instanceof Anthropic.APIConnectionError) {
+      throw new Error('ネットワークに接続できませんでした。接続を確認してください。');
+    }
+    if (err instanceof Anthropic.APIError) {
+      throw new Error(`AIの呼び出しに失敗しました (${err.status ?? '不明'}): ${err.message}`);
+    }
+    throw err;
+  }
+
+  if (response.stop_reason === 'refusal') {
+    throw new Error('AIがこの文面を処理できませんでした。');
+  }
+  const textOut = response.content
+    .filter((b): b is Anthropic.Beta.BetaTextBlock => b.type === 'text')
+    .map((b) => b.text)
+    .join('');
+  let parsed: ImportedTalent;
+  try {
+    parsed = JSON.parse(textOut) as ImportedTalent;
+  } catch {
+    throw new Error('AIの応答を読み取れませんでした。もう一度お試しください。');
+  }
+  if (!parsed.stage_name?.trim()) {
+    throw new Error('文面からタレント名を読み取れませんでした。名前を含めて貼り付けてください。');
+  }
+  const validCats = ['映画', 'TV', 'CM', 'MV', '舞台', 'その他'];
+  parsed.careers = (parsed.careers ?? [])
+    .filter((c) => c && c.title?.trim())
+    .map((c) => ({ ...c, category: validCats.includes(c.category) ? c.category : 'その他' }));
+  return parsed;
 }

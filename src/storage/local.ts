@@ -27,8 +27,11 @@ export class LocalAdapter implements StorageAdapter {
   async loadTemplate(): Promise<Template | undefined> {
     return (await db()).get('kv', 'template');
   }
-  async saveTemplate(t: Template): Promise<void> {
-    await (await db()).put('kv', t, 'template');
+  async loadTemplates(): Promise<Template[] | undefined> {
+    return (await db()).get('kv', 'templates');
+  }
+  async saveTemplates(ts: Template[]): Promise<void> {
+    await (await db()).put('kv', ts, 'templates');
   }
 
   async listTalents(): Promise<Talent[]> {
