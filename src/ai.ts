@@ -220,6 +220,7 @@ const COLLECT_PROMPT = `あなたはタレント事務所のデスク担当の�
 - 各候補に必ず情報源のURL (source_url) を付ける。確認できた度合いを confidence（高=公式発表を直接確認/中=信頼できる媒体の記事/低=断片的な情報）で示す
 - category は「映画」「TV」「CM」「MV」「舞台」「その他」のいずれか
 - 見つからなければ candidates は空配列でよい。無理に候補を作らない
+- **調査は効率よく**: 検索とページ取得は合計10回以内。十分な情報が集まったら早めに切り上げて出力する。網羅より速さを優先する
 - summary には調査の要約（何を調べて何が見つかったか）を日本語で簡潔に書く
 
 最終的な回答は次のJSONのみを出力する（前後に説明文を付けない）:
@@ -232,7 +233,11 @@ function extractJson(text: string): unknown {
   return JSON.parse(text.slice(start, end + 1));
 }
 
-export async function collectCareersFromWeb(talent: Talent): Promise<CollectResult> {
+export async function collectCareersFromWeb(
+  talent: Talent,
+  onProgress?: (msg: string) => void,
+  signal?: AbortSignal,
+): Promise<CollectResult> {
   const apiKey = getApiKey();
   if (!apiKey) {
     throw new Error('Anthropic APIキーが未設定です。「設定」画面のAI設定から登録してください。');
@@ -267,23 +272,42 @@ export async function collectCareersFromWeb(talent: Talent): Promise<CollectResu
       ? { betas: ['server-side-fallback-2026-07-01'], fallbacks: 'default' as const }
       : {}),
     tools: [
-      { type: 'web_search_20260209' as const, name: 'web_search' as const, max_uses: 8 },
-      { type: 'web_fetch_20260209' as const, name: 'web_fetch' as const, max_uses: 8 },
+      { type: 'web_search_20260209' as const, name: 'web_search' as const, max_uses: 5 },
+      { type: 'web_fetch_20260209' as const, name: 'web_fetch' as const, max_uses: 5 },
     ],
     system: COLLECT_PROMPT,
   };
 
+  // ストリーミングで実行し、ツール実行のたびに進捗を通知する
+  let toolCount = 0;
+  async function runOnce(msgs: Anthropic.Beta.BetaMessageParam[]) {
+    const stream = client.beta.messages.stream({ ...baseParams, messages: msgs }, { signal });
+    for await (const ev of stream) {
+      if (ev.type === 'content_block_start' && ev.content_block.type === 'server_tool_use') {
+        toolCount++;
+        const label = ev.content_block.name === 'web_search' ? 'Web検索' : 'ページを確認';
+        onProgress?.(`調査中… ${label}（${toolCount}回目のツール実行）`);
+      }
+    }
+    return await stream.finalMessage();
+  }
+
   let messages: Anthropic.Beta.BetaMessageParam[] = [{ role: 'user', content: userContent }];
   let response;
   try {
-    response = await client.beta.messages.create({ ...baseParams, messages });
-    // サーバーサイドツールのループが上限に達した場合は継続する
+    onProgress?.('調査を開始しています…');
+    response = await runOnce(messages);
+    // サーバーサイドツールのループが上限に達した場合は継続する（最大2回まで）
     let guard = 0;
-    while (response.stop_reason === 'pause_turn' && guard++ < 5) {
+    while (response.stop_reason === 'pause_turn' && guard++ < 2) {
+      onProgress?.('調査を継続しています…');
       messages = [...messages, { role: 'assistant', content: response.content }];
-      response = await client.beta.messages.create({ ...baseParams, messages });
+      response = await runOnce(messages);
     }
   } catch (err) {
+    if (err instanceof Anthropic.APIUserAbortError) {
+      throw new Error('調査を中止しました。');
+    }
     if (err instanceof Anthropic.AuthenticationError) {
       throw new Error('APIキーが正しくありません。「設定」画面で確認してください。');
     }

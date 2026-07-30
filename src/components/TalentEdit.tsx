@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useStore } from '../store';
 import {
   CAREER_CATEGORIES,
@@ -566,20 +566,28 @@ function CollectPanel({ talent, patch }: { talent: Talent; patch: (p: Partial<Ta
   const [showSources, setShowSources] = useState(false);
   // 入力中の改行が消えないよう、表示は下書き文字列で保持し、保存データは行分割して反映する
   const [sourcesDraft, setSourcesDraft] = useState((talent.source_urls ?? []).join('\n'));
+  const [status, setStatus] = useState('');
+  const abortRef = useRef<AbortController | null>(null);
 
   async function run() {
     setBusy(true);
     setError('');
     setResult(null);
+    const ac = new AbortController();
+    abortRef.current = ac;
+    const timer = setTimeout(() => ac.abort(), 5 * 60 * 1000); // 5分で自動中断
     try {
-      const r = await collectCareersFromWeb(talent);
+      const r = await collectCareersFromWeb(talent, setStatus, ac.signal);
       setResult(r);
       // 確度「高」「中」を初期選択
       setChecked(new Set(r.candidates.map((c, i) => (c.confidence !== '低' ? i : -1)).filter((i) => i >= 0)));
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
+      clearTimeout(timer);
+      abortRef.current = null;
       setBusy(false);
+      setStatus('');
     }
   }
 
@@ -618,9 +626,17 @@ function CollectPanel({ talent, patch }: { talent: Talent; patch: (p: Partial<Ta
           情報源URL {talent.source_urls?.length ? `(${talent.source_urls.length}件)` : '(未設定)'}
         </button>
         <button className="primary" onClick={run} disabled={busy}>
-          {busy ? 'Webを調査中…（1分ほどかかります）' : '出演情報を収集'}
+          {busy ? 'Webを調査中…' : '出演情報を収集'}
         </button>
+        {busy && (
+          <button onClick={() => abortRef.current?.abort()}>中止</button>
+        )}
       </div>
+      {busy && (
+        <p className="hint" style={{ marginTop: 8 }}>
+          {status || '調査を開始しています…'}（通常1〜2分。5分で自動中断します）
+        </p>
+      )}
       {showSources && (
         <div className="prop-row">
           <label>
