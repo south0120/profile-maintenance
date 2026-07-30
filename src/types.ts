@@ -13,6 +13,7 @@ export interface Career {
   note?: string; // 補足（映画祭入選など）
   is_highlight?: boolean; // 赤字太字で強調
   hidden?: boolean; // ストックには残すがプロフィールには表示しない
+  source_url?: string; // Web収集で取り込んだ場合の情報源URL
 }
 
 export interface VideoLink {
@@ -60,6 +61,8 @@ export interface Talent {
   hobbies_skills: string[];
   self_intro?: string;
   tags: string[];
+  // Web収集の情報源（事務所HPのお知らせページ、本人のX/InstagramのURLなど）
+  source_urls?: string[];
   careers: Career[];
   video_links: VideoLink[];
   // 写真枠(role) -> 採用する写真ID

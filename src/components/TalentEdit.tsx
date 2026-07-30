@@ -10,7 +10,13 @@ import {
   VideoLink,
 } from '../types';
 import { formatCareer, uid } from '../model';
-import { CareerProposal, proposeCareerArrangement } from '../ai';
+import {
+  CareerCandidate,
+  CareerProposal,
+  CollectResult,
+  collectCareersFromWeb,
+  proposeCareerArrangement,
+} from '../ai';
 
 type Tab = 'basic' | 'photos' | 'careers' | 'other';
 
@@ -368,6 +374,7 @@ function CareerTab({ talent, patch }: { talent: Talent; patch: (p: Partial<Talen
         経歴は削除せず「ストック」として貯めておき、「表示」チェックでプロフィールへの掲載を切り替えます。
         「強調」にチェックすると赤字太字で目立たせます（最新作など）。
       </p>
+      <CollectPanel talent={talent} patch={patch} />
       <AiArrangePanel talent={talent} patch={patch} />
       <table className="career-table">
         <thead>
@@ -543,6 +550,139 @@ function AiArrangePanel({ talent, patch }: { talent: Talent; patch: (p: Partial<
             </button>
             <button onClick={() => setProposal(null)}>破棄</button>
           </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Webから出演情報を収集して経歴ストック（実績DB）への登録候補を提示するパネル。
+// 収集はサーバーサイドWeb検索(Claude API)で行い、候補は人が選んでから追加する。
+function CollectPanel({ talent, patch }: { talent: Talent; patch: (p: Partial<Talent>) => void }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const [result, setResult] = useState<CollectResult | null>(null);
+  const [checked, setChecked] = useState<Set<number>>(new Set());
+  const [showSources, setShowSources] = useState(false);
+
+  const sourcesText = (talent.source_urls ?? []).join('\n');
+
+  async function run() {
+    setBusy(true);
+    setError('');
+    setResult(null);
+    try {
+      const r = await collectCareersFromWeb(talent);
+      setResult(r);
+      // 確度「高」「中」を初期選択
+      setChecked(new Set(r.candidates.map((c, i) => (c.confidence !== '低' ? i : -1)).filter((i) => i >= 0)));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function addSelected(hidden: boolean) {
+    if (!result) return;
+    const additions: Career[] = result.candidates
+      .filter((_, i) => checked.has(i))
+      .map((c) => ({
+        id: uid(),
+        category: (CAREER_CATEGORIES as string[]).includes(c.category)
+          ? (c.category as CareerCategory)
+          : 'その他',
+        year: c.year,
+        title: c.title,
+        episode: c.episode,
+        role_name: c.role_name,
+        director_or_station: c.director_or_station,
+        note: c.note,
+        source_url: c.source_url,
+        hidden,
+      }));
+    if (additions.length === 0) return;
+    patch({ careers: [...talent.careers, ...additions] });
+    setResult(null);
+  }
+
+  return (
+    <div className="ai-panel">
+      <h4>Webから出演情報を収集（実績DBに追加）</h4>
+      <p className="hint">
+        事務所HPのお知らせやX（SNS）、Web検索から新しい出演情報を探し、登録候補として提示します。
+        候補を確認して選んだものだけがストックに追加されます。検索には1分ほどかかることがあります。
+      </p>
+      <div className="ai-input-row">
+        <button onClick={() => setShowSources(!showSources)}>
+          情報源URL {talent.source_urls?.length ? `(${talent.source_urls.length}件)` : '(未設定)'}
+        </button>
+        <button className="primary" onClick={run} disabled={busy}>
+          {busy ? 'Webを調査中…（1分ほどかかります）' : '出演情報を収集'}
+        </button>
+      </div>
+      {showSources && (
+        <div className="prop-row">
+          <label>
+            情報源URL（1行に1つ。事務所HPのお知らせページ、本人のX・InstagramのURLなど。空でもWeb検索で調査します）
+          </label>
+          <textarea
+            rows={3}
+            value={sourcesText}
+            placeholder={'https://example.com/news\nhttps://x.com/talent_account'}
+            onChange={(e) =>
+              patch({ source_urls: e.target.value.split('\n').map((s) => s.trim()).filter(Boolean) })
+            }
+          />
+        </div>
+      )}
+      {error && <p className="ai-error">{error}</p>}
+
+      {result && (
+        <div className="ai-proposal">
+          <p className="ai-reason">
+            <strong>調査結果:</strong> {result.summary}
+          </p>
+          {result.candidates.length === 0 ? (
+            <p className="hint">新しい出演情報は見つかりませんでした。</p>
+          ) : (
+            <>
+              <ul className="ai-preview">
+                {result.candidates.map((c, i) => (
+                  <li key={i}>
+                    <label className="cand">
+                      <input
+                        type="checkbox"
+                        checked={checked.has(i)}
+                        onChange={(e) => {
+                          const next = new Set(checked);
+                          if (e.target.checked) next.add(i);
+                          else next.delete(i);
+                          setChecked(next);
+                        }}
+                      />
+                      <span className="badge">{c.category}</span>
+                      {c.year && `${c.year}年`}『{c.title}』{c.episode ?? ''} {c.role_name ?? ''}{' '}
+                      {c.director_or_station ?? ''}
+                      <span className={`badge conf-${c.confidence}`}>確度:{c.confidence}</span>
+                      {c.source_url && (
+                        <a href={c.source_url} target="_blank" rel="noreferrer" className="src-link">
+                          情報源
+                        </a>
+                      )}
+                    </label>
+                  </li>
+                ))}
+              </ul>
+              <div className="ai-actions">
+                <button className="primary" onClick={() => addSelected(false)}>
+                  選択した候補を表示で追加
+                </button>
+                <button onClick={() => addSelected(true)}>非表示（ストックのみ）で追加</button>
+                <button onClick={() => setResult(null)}>破棄</button>
+              </div>
+            </>
+          )}
         </div>
       )}
     </div>
