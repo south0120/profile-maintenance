@@ -2,14 +2,27 @@ package main
 
 import (
 	"fmt"
+	"net"
 	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
 const port = "8787"
+
+// index.html をキャッシュさせない（更新版の配布時に旧画面が残るのを防ぐ）
+type noCacheHTML struct{ h http.Handler }
+
+func (n noCacheHTML) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	p := r.URL.Path
+	if p == "/" || strings.HasSuffix(p, ".html") {
+		w.Header().Set("Cache-Control", "no-store, must-revalidate")
+	}
+	n.h.ServeHTTP(w, r)
+}
 
 func main() {
 	exe, err := os.Executable()
@@ -19,8 +32,24 @@ func main() {
 	}
 	appDir := filepath.Join(filepath.Dir(exe), "..", "app")
 
+	// ポートが使用中 = 旧バージョンが起動中の可能性。案内して終了する
+	ln, err := net.Listen("tcp", "127.0.0.1:"+port)
+	if err != nil {
+		fmt.Println("──────────────────────────────────────")
+		fmt.Println(" すでにツールが起動中です。")
+		fmt.Println(" 新しいバージョンに更新した場合は、")
+		fmt.Println("  1. 開いているターミナルのウィンドウを『すべて』閉じる")
+		fmt.Println("  2. もう一度「起動.command」を開く")
+		fmt.Println("  3. ブラウザで command+shift+R で再読み込み")
+		fmt.Println(" の順でお試しください。")
+		fmt.Println("──────────────────────────────────────")
+		_ = exec.Command("open", "http://localhost:"+port).Start()
+		time.Sleep(15 * time.Second)
+		return
+	}
+
 	go func() {
-		time.Sleep(500 * time.Millisecond)
+		time.Sleep(400 * time.Millisecond)
 		_ = exec.Command("open", "http://localhost:"+port).Start()
 	}()
 
@@ -30,10 +59,9 @@ func main() {
 	fmt.Println(" 終了するときは、このウィンドウを閉じてください")
 	fmt.Println("──────────────────────────────────────")
 
-	http.Handle("/", http.FileServer(http.Dir(appDir)))
-	if err := http.ListenAndServe("127.0.0.1:"+port, nil); err != nil {
-		// すでに起動中の場合など。ブラウザは開いているのでそのまま案内する
-		fmt.Println("※すでに起動中のようです。開いたブラウザ画面をご利用ください。")
+	srv := &http.Server{Handler: noCacheHTML{http.FileServer(http.Dir(appDir))}}
+	if err := srv.Serve(ln); err != nil {
+		fmt.Println("エラー:", err)
 		time.Sleep(8 * time.Second)
 	}
 }

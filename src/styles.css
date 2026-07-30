@@ -265,3 +265,5 @@ main { padding: 22px 24px; max-width: 1480px; margin: 0 auto; }
   border-radius: 99px; padding: 3px 10px;
 }
 .tpl-select { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); }
+
+.app-version { font-size: 11px; color: var(--faint); margin-left: -14px; align-self: flex-start; }

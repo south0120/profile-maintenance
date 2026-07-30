@@ -46,6 +46,7 @@ function Shell() {
     <div className="app">
       <nav className="topnav noprint">
         <span className="brand">タレント実績管理・プロフィール作成</span>
+        <span className="app-version">v1.2</span>
         {nav('#/', 'タレント一覧')}
         {nav('#/editor', 'レイアウト')}
         {nav('#/settings', '設定')}
