@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useStore } from '../store';
 import { Agency } from '../types';
 import { exportBackup, importBackup } from '../backup';
@@ -118,8 +118,11 @@ export function Settings() {
 }
 
 function ApiKeyField() {
-  const [key, setKey] = useState(getApiKey());
+  const [key, setKey] = useState('');
   const [saved, setSaved] = useState(false);
+  useEffect(() => {
+    getApiKey().then((k) => setKey(k));
+  }, []);
   return (
     <div className="form-row">
       <label className="field wide">
@@ -136,8 +139,8 @@ function ApiKeyField() {
       </label>
       <button
         className="primary"
-        onClick={() => {
-          saveApiKey(key);
+        onClick={async () => {
+          await saveApiKey(key);
           setSaved(true);
         }}
       >

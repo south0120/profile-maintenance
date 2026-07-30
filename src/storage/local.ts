@@ -66,3 +66,11 @@ export class LocalAdapter implements StorageAdapter {
 }
 
 export const storage: StorageAdapter = new LocalAdapter();
+
+// 設定値(APIキー等)用の汎用kvアクセス。バックアップ対象には含めない
+export async function kvGet<T>(key: string): Promise<T | undefined> {
+  return (await db()).get('kv', key);
+}
+export async function kvSet(key: string, value: unknown): Promise<void> {
+  await (await db()).put('kv', value, key);
+}

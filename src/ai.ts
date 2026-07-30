@@ -1,18 +1,40 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { Talent } from './types';
+import { kvGet, kvSet } from './storage/local';
 
 // AI提案は必ず人の確認を経て反映する方針（要件F8）。
 // このモジュールは「提案の生成」のみを行い、保存は呼び出し側のUIが担う。
 
 const API_KEY_STORAGE = 'anthropic_api_key';
 
-export function getApiKey(): string {
-  return localStorage.getItem(API_KEY_STORAGE) ?? '';
+// APIキーはタレントデータと同じIndexedDBに保存する（localStorageは予備の鏡として併用）。
+// どちらか一方が消えても他方から復元できる。バックアップZIPには含めない。
+let cachedApiKey: string | null = null;
+
+export async function getApiKey(): Promise<string> {
+  if (cachedApiKey !== null) return cachedApiKey;
+  let key = (await kvGet<string>(API_KEY_STORAGE).catch(() => undefined)) ?? '';
+  const legacy = localStorage.getItem(API_KEY_STORAGE) ?? '';
+  if (!key && legacy) {
+    key = legacy;
+    await kvSet(API_KEY_STORAGE, key).catch(() => {});
+  } else if (key && !legacy) {
+    localStorage.setItem(API_KEY_STORAGE, key);
+  }
+  cachedApiKey = key;
+  return key;
 }
 
-export function saveApiKey(key: string): void {
-  if (key) localStorage.setItem(API_KEY_STORAGE, key.trim());
-  else localStorage.removeItem(API_KEY_STORAGE);
+export async function saveApiKey(key: string): Promise<void> {
+  const v = key.trim();
+  cachedApiKey = v;
+  if (v) {
+    await kvSet(API_KEY_STORAGE, v).catch(() => {});
+    localStorage.setItem(API_KEY_STORAGE, v);
+  } else {
+    await kvSet(API_KEY_STORAGE, '').catch(() => {});
+    localStorage.removeItem(API_KEY_STORAGE);
+  }
 }
 
 // AI構成は提供側（保守側）で管理する。ユーザー画面には公開しない。
@@ -84,7 +106,7 @@ export async function proposeCareerArrangement(
   talent: Talent,
   target: string,
 ): Promise<CareerProposal> {
-  const apiKey = getApiKey();
+  const apiKey = await getApiKey();
   if (!apiKey) {
     throw new Error('Anthropic APIキーが未設定です。「設定」画面のAI設定から登録してください。');
   }
@@ -238,7 +260,7 @@ export async function collectCareersFromWeb(
   onProgress?: (msg: string) => void,
   signal?: AbortSignal,
 ): Promise<CollectResult> {
-  const apiKey = getApiKey();
+  const apiKey = await getApiKey();
   if (!apiKey) {
     throw new Error('Anthropic APIキーが未設定です。「設定」画面のAI設定から登録してください。');
   }
@@ -446,7 +468,7 @@ const IMPORT_PROMPT = `あなたはタレント事務所のデータ移行担当
 - 出演歴・経歴に該当する行はすべて careers に含める（漏らさない）`;
 
 export async function importTalentFromText(text: string): Promise<ImportedTalent> {
-  const apiKey = getApiKey();
+  const apiKey = await getApiKey();
   if (!apiKey) {
     throw new Error('Anthropic APIキーが未設定です。「設定」画面のAI設定から登録してください。');
   }
