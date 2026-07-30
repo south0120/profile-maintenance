@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useStore } from '../store';
 import { Agency } from '../types';
 import { exportBackup, importBackup } from '../backup';
-import { getApiKey, saveApiKey } from '../ai';
+import { AI_MODELS, getApiKey, getModel, saveApiKey, saveModel } from '../ai';
 
 export function Settings() {
   const store = useStore();
@@ -66,6 +66,7 @@ export function Settings() {
           で発行、従量課金）。キーはこのPCのブラウザ内にのみ保存され、バックアップZIPには含まれません。
         </p>
         <ApiKeyField />
+        <ModelField />
       </div>
 
       <h2>バックアップ</h2>
@@ -143,6 +144,34 @@ function ApiKeyField() {
       >
         {saved ? '保存済み' : 'キーを保存'}
       </button>
+    </div>
+  );
+}
+
+function ModelField() {
+  const [model, setModel] = useState(getModel());
+  return (
+    <div className="form-row">
+      <label className="field">
+        <span>AIモデル（コストと精度のバランス）</span>
+        <select
+          value={model}
+          onChange={(e) => {
+            setModel(e.target.value);
+            saveModel(e.target.value);
+          }}
+        >
+          {AI_MODELS.map((m) => (
+            <option key={m.id} value={m.id}>
+              {m.label}
+            </option>
+          ))}
+        </select>
+      </label>
+      <p className="hint" style={{ maxWidth: 480 }}>
+        経歴の選抜・並べ替えは軽量モデルで十分です。Web収集は情報の取捨選択が必要なため、
+        軽量選択時も自動的にバランスモデル(Sonnet)で実行します。
+      </p>
     </div>
   );
 }

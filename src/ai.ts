@@ -5,6 +5,7 @@ import { Talent } from './types';
 // このモジュールは「提案の生成」のみを行い、保存は呼び出し側のUIが担う。
 
 const API_KEY_STORAGE = 'anthropic_api_key';
+const MODEL_STORAGE = 'anthropic_model';
 
 export function getApiKey(): string {
   return localStorage.getItem(API_KEY_STORAGE) ?? '';
@@ -13,6 +14,29 @@ export function getApiKey(): string {
 export function saveApiKey(key: string): void {
   if (key) localStorage.setItem(API_KEY_STORAGE, key.trim());
   else localStorage.removeItem(API_KEY_STORAGE);
+}
+
+// 利用モデル。日常業務の選抜・収集は軽量モデルで十分なため、既定はHaiku。
+export const AI_MODELS = [
+  { id: 'claude-haiku-4-5', label: '軽量・最安（Haiku 4.5）※おすすめ' },
+  { id: 'claude-sonnet-5', label: 'バランス（Sonnet 5）' },
+  { id: 'claude-opus-5', label: '最高精度（Opus 5）' },
+];
+
+export function getModel(): string {
+  const m = localStorage.getItem(MODEL_STORAGE);
+  return AI_MODELS.some((x) => x.id === m) ? (m as string) : 'claude-haiku-4-5';
+}
+
+export function saveModel(model: string): void {
+  localStorage.setItem(MODEL_STORAGE, model);
+}
+
+// Web収集はサーバーサイド検索ツールの対応と情報の取捨選択の判断力が必要なため、
+// Haiku選択時もSonnet 5で実行する（選抜は選択モデルをそのまま使用）。
+export function getCollectModel(): string {
+  const m = getModel();
+  return m === 'claude-haiku-4-5' ? 'claude-sonnet-5' : m;
 }
 
 export interface CareerProposalItem {
@@ -101,13 +125,16 @@ export async function proposeCareerArrangement(
     JSON.stringify(stock, null, 2),
   ].join('\n');
 
+  const model = getModel();
   let response;
   try {
     response = await client.beta.messages.create({
-      model: 'claude-opus-5',
+      model,
       max_tokens: 16000,
-      betas: ['server-side-fallback-2026-07-01'],
-      fallbacks: 'default',
+      // 安全分類のフォールバックはOpus系のみ対応
+      ...(model === 'claude-opus-5'
+        ? { betas: ['server-side-fallback-2026-07-01'], fallbacks: 'default' as const }
+        : { betas: [] }),
       output_config: {
         format: { type: 'json_schema', schema: PROPOSAL_SCHEMA },
       },
@@ -238,11 +265,13 @@ export async function collectCareersFromWeb(talent: Talent): Promise<CollectResu
     .filter((l) => l !== '')
     .join('\n');
 
+  const collectModel = getCollectModel();
   const baseParams = {
-    model: 'claude-opus-5',
+    model: collectModel,
     max_tokens: 16000,
-    betas: ['server-side-fallback-2026-07-01'],
-    fallbacks: 'default' as const,
+    ...(collectModel === 'claude-opus-5'
+      ? { betas: ['server-side-fallback-2026-07-01'], fallbacks: 'default' as const }
+      : { betas: [] as string[] }),
     tools: [
       { type: 'web_search_20260209' as const, name: 'web_search' as const, max_uses: 8 },
       { type: 'web_fetch_20260209' as const, name: 'web_fetch' as const, max_uses: 8 },
