@@ -564,8 +564,8 @@ function CollectPanel({ talent, patch }: { talent: Talent; patch: (p: Partial<Ta
   const [result, setResult] = useState<CollectResult | null>(null);
   const [checked, setChecked] = useState<Set<number>>(new Set());
   const [showSources, setShowSources] = useState(false);
-
-  const sourcesText = (talent.source_urls ?? []).join('\n');
+  // 入力中の改行が消えないよう、表示は下書き文字列で保持し、保存データは行分割して反映する
+  const [sourcesDraft, setSourcesDraft] = useState((talent.source_urls ?? []).join('\n'));
 
   async function run() {
     setBusy(true);
@@ -628,11 +628,12 @@ function CollectPanel({ talent, patch }: { talent: Talent; patch: (p: Partial<Ta
           </label>
           <textarea
             rows={3}
-            value={sourcesText}
+            value={sourcesDraft}
             placeholder={'https://example.com/news\nhttps://x.com/talent_account'}
-            onChange={(e) =>
-              patch({ source_urls: e.target.value.split('\n').map((s) => s.trim()).filter(Boolean) })
-            }
+            onChange={(e) => {
+              setSourcesDraft(e.target.value);
+              patch({ source_urls: e.target.value.split('\n').map((s) => s.trim()).filter(Boolean) });
+            }}
           />
         </div>
       )}
