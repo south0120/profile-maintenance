@@ -22,12 +22,14 @@ export interface VideoLink {
   url: string;
 }
 
-export type PhotoRole = 'bust_up' | 'full_body' | 'snap';
+export type PhotoRole = 'bust_up' | 'full_body' | 'snap' | 'snap2' | 'snap3';
 
 export const PHOTO_ROLE_LABEL: Record<PhotoRole, string> = {
   bust_up: 'バストアップ',
   full_body: '全身',
-  snap: 'スナップ',
+  snap: 'スナップ1',
+  snap2: 'スナップ2',
+  snap3: 'スナップ3',
 };
 
 export interface PhotoMeta {
@@ -80,8 +82,41 @@ export interface Agency {
   brand_color?: string;
 }
 
+// 出力用フォント。利用者のPC(Mac/Windows)に標準搭載のフォントで構成
+export const FONT_OPTIONS: { key: string; label: string; css: string }[] = [
+  {
+    key: 'sans',
+    label: 'ゴシック',
+    css: '"Hiragino Kaku Gothic ProN", "Yu Gothic", "Noto Sans JP", Meiryo, sans-serif',
+  },
+  {
+    key: 'serif',
+    label: '明朝',
+    css: '"Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", serif',
+  },
+  {
+    key: 'rounded',
+    label: '丸ゴシック',
+    css: '"Hiragino Maru Gothic ProN", "HGMaruGothicMPRO", "Yu Gothic", "Noto Sans JP", sans-serif',
+  },
+  {
+    key: 'euro-serif',
+    label: '欧文セリフ',
+    css: 'Georgia, "Times New Roman", "Hiragino Mincho ProN", serif',
+  },
+  {
+    key: 'euro-script',
+    label: '欧文スクリプト',
+    css: '"Snell Roundhand", "Brush Script MT", "Segoe Script", cursive',
+  },
+];
+
+export function fontCss(key: string): string {
+  return FONT_OPTIONS.find((f) => f.key === key)?.css ?? FONT_OPTIONS[0].css;
+}
+
 export interface TextStyle {
-  font: 'serif' | 'sans';
+  font: string; // FONT_OPTIONS の key
   size: number; // pt
   bold?: boolean;
   color?: string;

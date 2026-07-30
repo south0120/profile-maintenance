@@ -11,6 +11,7 @@ import {
   TemplateElement,
   TextElement,
   TextStyle,
+  fontCss,
 } from '../types';
 import { formatCareer, resolveBinding } from '../model';
 
@@ -18,10 +19,7 @@ export const PX_PER_MM = 96 / 25.4;
 
 function textStyleCss(s: TextStyle): React.CSSProperties {
   return {
-    fontFamily:
-      s.font === 'serif'
-        ? '"Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", serif'
-        : '"Hiragino Kaku Gothic ProN", "Yu Gothic", "Noto Sans JP", Meiryo, sans-serif',
+    fontFamily: fontCss(s.font),
     fontSize: `${s.size}pt`,
     fontWeight: s.bold ? 700 : 400,
     color: s.color ?? '#111',

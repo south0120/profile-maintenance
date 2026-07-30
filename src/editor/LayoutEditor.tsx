@@ -4,6 +4,9 @@ import { ElementView, PX_PER_MM } from '../render/ProfilePage';
 import {
   CAREER_CATEGORIES,
   CareerCategory,
+  FONT_OPTIONS,
+  PHOTO_ROLE_LABEL,
+  PhotoRole,
   RectMM,
   Template,
   TemplateElement,
@@ -28,6 +31,8 @@ export function LayoutEditor() {
   const [zoom, setZoom] = useState(0.85);
   const [previewTalentId, setPreviewTalentId] = useState<string | ''>('');
   const [dirty, setDirty] = useState(false);
+  // PowerPoint風の整列ガイド（ページ中央に吸着したとき表示）
+  const [guides, setGuides] = useState<{ v: boolean; h: boolean }>({ v: false, h: false });
   const dragRef = useRef<{
     id: string;
     startX: number;
@@ -77,6 +82,14 @@ export function LayoutEditor() {
     if (!d.dir) {
       x = snap(d.orig.x + dx);
       y = snap(d.orig.y + dy);
+      // ページ中央への吸着（PowerPointのスマートガイド風）
+      const cx = tpl.page.w / 2;
+      const cy = tpl.page.h / 2;
+      const vHit = Math.abs(x + w / 2 - cx) < 1.2;
+      const hHit = Math.abs(y + h / 2 - cy) < 1.2;
+      if (vHit) x = cx - w / 2;
+      if (hHit) y = cy - h / 2;
+      setGuides({ v: vHit, h: hHit });
     } else {
       if (d.dir.e) w = Math.max(2, snap(d.orig.w + dx));
       if (d.dir.s) h = Math.max(1, snap(d.orig.h + dy));
@@ -96,6 +109,7 @@ export function LayoutEditor() {
 
   function onPointerUp() {
     dragRef.current = null;
+    setGuides({ v: false, h: false });
   }
 
   function onKeyDown(e: React.KeyboardEvent) {
@@ -231,6 +245,23 @@ export function LayoutEditor() {
                   blobUrl={store.blobUrl}
                 />
               ))}
+              {/* 整列ガイド */}
+              {guides.v && (
+                <div
+                  style={{
+                    position: 'absolute', left: `${tpl.page.w / 2}mm`, top: 0,
+                    width: 1, height: '100%', background: '#f43f8e', zIndex: 999,
+                  }}
+                />
+              )}
+              {guides.h && (
+                <div
+                  style={{
+                    position: 'absolute', top: `${tpl.page.h / 2}mm`, left: 0,
+                    height: 1, width: '100%', background: '#f43f8e', zIndex: 999,
+                  }}
+                />
+              )}
               {/* 操作用オーバーレイ */}
               {tpl.elements.map((el) => {
                 const sel = el.id === selectedId;
@@ -378,9 +409,11 @@ function PropertyPanel({
         <div className="prop-row">
           <label>写真の用途</label>
           <select value={el.slot} onChange={(e) => onPatch({ slot: e.target.value } as Partial<TemplateElement>)}>
-            <option value="bust_up">バストアップ</option>
-            <option value="full_body">全身</option>
-            <option value="snap">スナップ</option>
+            {(Object.keys(PHOTO_ROLE_LABEL) as PhotoRole[]).map((r) => (
+              <option key={r} value={r}>
+                {PHOTO_ROLE_LABEL[r]}
+              </option>
+            ))}
           </select>
         </div>
       )}
@@ -413,9 +446,12 @@ function PropertyPanel({
           <h4>書式</h4>
           <div className="prop-grid">
             <label>フォント</label>
-            <select value={el.style.font} onChange={(e) => onStyle({ font: e.target.value as 'serif' | 'sans' })}>
-              <option value="sans">ゴシック</option>
-              <option value="serif">明朝</option>
+            <select value={el.style.font} onChange={(e) => onStyle({ font: e.target.value })}>
+              {FONT_OPTIONS.map((f) => (
+                <option key={f.key} value={f.key}>
+                  {f.label}
+                </option>
+              ))}
             </select>
             <label>サイズ (pt)</label>
             {num(el.style.size, (n) => onStyle({ size: n }))}
