@@ -1,0 +1,19 @@
+■ タレント実績管理・プロフィール作成ツール（v1）の起動方法
+
+【いちばん簡単な方法（Node.js がある場合）】
+  1. このフォルダでターミナルを開く
+  2. npm install
+  3. npm run dev
+  4. 表示されたURL（http://localhost:5173 など）をブラウザで開く
+
+【ビルド済みファイルで確認する場合】
+  dist/ フォルダにビルド済みの本体が入っています。
+  ブラウザのセキュリティ制限のため index.html を直接ダブルクリックでは動きません。
+  簡易サーバーで開いてください:
+    npx serve dist        （または python3 -m http.server -d dist 8000）
+  → http://localhost:3000 （または :8000）をブラウザで開く
+
+【メモ】
+  - データはブラウザ内（IndexedDB）に保存されます。同じPC・同じブラウザで開き続けてください
+  - AI機能（営業先別選抜・Web収集）を使う場合は「設定」画面で Anthropic APIキーを登録
+  - 仕様書は docs/04_specification.md を参照
