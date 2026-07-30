@@ -39,8 +39,13 @@ export async function importBackup(file: File): Promise<void> {
   const data = JSON.parse(await dataFile.async('string'));
 
   if (data.agency) await storage.saveAgency(data.agency);
-  if (data.templates) await storage.saveTemplates(data.templates);
-  else if (data.template) await storage.saveTemplates([data.template]); // 旧形式
+  if (data.templates) {
+    await storage.saveTemplates(data.templates);
+  } else if (data.template) {
+    // 旧形式(単一テンプレート): 編集済み扱いで保持。不足する標準テンプレートは
+    // 復元後の再読み込み時に自動補充される(store.reloadの補充処理)
+    await storage.saveTemplates([{ ...data.template, modified: true }]);
+  }
   for (const t of data.talents ?? []) await storage.saveTalent(t);
   for (const p of data.photos ?? []) await storage.savePhotoMeta(p);
 

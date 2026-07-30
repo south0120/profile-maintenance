@@ -125,10 +125,10 @@ export async function proposeCareerArrangement(
     response = await client.beta.messages.create({
       model,
       max_tokens: 16000,
-      // 安全分類のフォールバックはOpus系のみ対応
+      // 安全分類のフォールバックはOpus系のみ対応（それ以外はbetasヘッダ自体を送らない）
       ...(model === 'claude-opus-5'
         ? { betas: ['server-side-fallback-2026-07-01'], fallbacks: 'default' as const }
-        : { betas: [] }),
+        : {}),
       output_config: {
         format: { type: 'json_schema', schema: PROPOSAL_SCHEMA },
       },
@@ -265,7 +265,7 @@ export async function collectCareersFromWeb(talent: Talent): Promise<CollectResu
     max_tokens: 16000,
     ...(collectModel === 'claude-opus-5'
       ? { betas: ['server-side-fallback-2026-07-01'], fallbacks: 'default' as const }
-      : { betas: [] as string[] }),
+      : {}),
     tools: [
       { type: 'web_search_20260209' as const, name: 'web_search' as const, max_uses: 8 },
       { type: 'web_fetch_20260209' as const, name: 'web_fetch' as const, max_uses: 8 },
@@ -433,7 +433,6 @@ export async function importTalentFromText(text: string): Promise<ImportedTalent
     response = await client.beta.messages.create({
       model: AI_CONFIG.importModel,
       max_tokens: 16000,
-      betas: [],
       output_config: { format: { type: 'json_schema', schema: IMPORT_SCHEMA } },
       system: IMPORT_PROMPT,
       messages: [{ role: 'user', content: `# 既存プロフィール文面\n${text}` }],
