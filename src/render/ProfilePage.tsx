@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useLayoutEffect, useRef, useState } from 'react';
 import {
   Agency,
   CareerListElement,
@@ -114,8 +114,24 @@ function PhotoEl({
 }
 
 function CareerListEl({ el, talent }: { el: CareerListElement; talent: Talent }) {
+  // 枠に入り切らない場合は文字サイズを自動縮小してすべて表示する（下限60%）
+  const ref = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(1);
+  const contentKey = JSON.stringify([el.rect, el.style.size, talent.careers.map((c) => [c.id, c.hidden])]);
+  useLayoutEffect(() => {
+    setScale(1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [contentKey]);
+  useLayoutEffect(() => {
+    const n = ref.current;
+    if (n && scale === 1 && n.scrollHeight > n.clientHeight + 1) {
+      setScale(Math.max(0.6, n.clientHeight / n.scrollHeight));
+    }
+  });
+  const style = textStyleCss(el.style);
+  if (scale < 1) style.fontSize = `${el.style.size * scale}pt`;
   return (
-    <div style={{ ...rectCss(el), ...textStyleCss(el.style), overflow: 'hidden' }}>
+    <div ref={ref} style={{ ...rectCss(el), ...style, overflow: 'hidden' }}>
       {el.categories.map((cat) => {
         const items = talent.careers.filter((c) => c.category === cat && !c.hidden);
         if (items.length === 0) return null;
@@ -142,6 +158,8 @@ function CareerListEl({ el, talent }: { el: CareerListElement; talent: Talent })
 }
 
 function LinksEl({ el, talent }: { el: LinksElement; talent: Talent }) {
+  // 動画リンク未登録のタレントでは空の枠を出さない
+  if (talent.video_links.length === 0) return null;
   return (
     <div
       style={{
