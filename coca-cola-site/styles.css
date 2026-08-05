@@ -86,6 +86,13 @@ button {
 .btn-secondary:hover { background: var(--color-surface); }
 .btn-white { background: var(--color-white); color: var(--color-primary); }
 .btn-white:hover { background: #FFE5E6; transform: scale(1.03); }
+.btn-outline {
+  background: var(--color-white);
+  color: var(--color-text);
+  border: 2px solid var(--color-text);
+  padding: 12px 40px;
+}
+.btn-outline:hover { background: var(--color-surface); }
 
 .text-link {
   font-size: 14px;
@@ -468,7 +475,49 @@ button {
 }
 .article-card .card-body h3 { font-size: 16px; }
 
-/* ---------- 下部CTA（§4.5） ---------- */
+/* ---------- フィーチャーセクション（§4.5） ---------- */
+.feature-grid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  align-items: start;
+}
+.feature-grid + .feature-grid { margin-top: 96px; }
+.feature-media {
+  grid-column: 1 / 8;
+  grid-row: 1;
+  margin-top: 48px;
+  aspect-ratio: 4 / 3;
+  border-radius: var(--radius-card);
+  display: grid;
+  place-items: center;
+  color: rgba(255, 255, 255, .9);
+}
+.media-warm { background: linear-gradient(135deg, #FF5A3C, #C3000A 60%, #6E0004); }
+.media-cool { background: linear-gradient(135deg, #26C6DA, #1565C0 60%, #0A2E57); }
+.feature-card {
+  grid-column: 7 / 13;
+  grid-row: 1;
+  z-index: 1;
+  background: var(--color-white);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card-hover);
+  padding: 56px;
+}
+.feature-card h2 {
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.4;
+  margin-bottom: 16px;
+}
+.feature-card p {
+  font-size: 15px;
+  line-height: 1.8;
+  margin-bottom: 48px;
+}
+.feature-grid.reverse .feature-media { grid-column: 6 / 13; }
+.feature-grid.reverse .feature-card { grid-column: 1 / 7; }
+
+/* ---------- 下部CTA（§4.6） ---------- */
 .cta-band {
   background: var(--color-primary);
   color: var(--color-white);
@@ -610,6 +659,18 @@ button {
 
   .campaign-grid { grid-template-columns: 1fr; }
   .article-grid { grid-template-columns: 1fr; }
+
+  /* フィーチャー: 縦積み＋カードを画像に重ねる */
+  .feature-grid { display: block; }
+  .feature-grid + .feature-grid { margin-top: 48px; }
+  .feature-media { margin-top: 0; }
+  .feature-card {
+    position: relative;
+    margin: -32px 16px 0;
+    padding: 32px 24px;
+  }
+  .feature-card h2 { font-size: 22px; }
+  .feature-card p { margin-bottom: 28px; }
 
   .app-banner { flex-direction: column; align-items: flex-start; padding: 24px; }
 
