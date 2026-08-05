@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ColaSite — トップページ再現デモ（学習用）</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- ヘッダー（Design.md §3.1） -->
+  <header class="site-header" id="site-header">
+    <div class="header-inner">
+      <button class="hamburger" id="hamburger" aria-label="メニューを開く" aria-expanded="false" aria-controls="drawer">
+        <span></span><span></span><span></span>
+      </button>
+
+      <nav class="global-nav" aria-label="グローバルナビゲーション">
+        <ul>
+          <li><a href="#brands" class="nav-link">ブランド</a></li>
+          <li><a href="#campaigns" class="nav-link">キャンペーン</a></li>
+          <li><a href="#articles" class="nav-link">記事</a></li>
+          <li><a href="#" class="nav-link">企業情報</a></li>
+        </ul>
+      </nav>
+
+      <a href="#" class="logo" aria-label="ColaSite トップページ">ColaSite</a>
+
+      <div class="header-utils">
+        <button class="util-btn" id="search-toggle" aria-label="検索を開く" aria-expanded="false" aria-controls="search-bar">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="currentColor" stroke-width="2"/><line x1="15.5" y1="15.5" x2="21" y2="21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+        <button class="util-btn" aria-label="国・言語の選択（日本 - 日本語）">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><ellipse cx="12" cy="12" rx="4" ry="9" fill="none" stroke="currentColor" stroke-width="2"/><line x1="3" y1="12" x2="21" y2="12" stroke="currentColor" stroke-width="2"/></svg>
+        </button>
+        <button class="util-btn" aria-label="ログイン">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4" fill="none" stroke="currentColor" stroke-width="2"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- 検索バー（展開式） -->
+    <div class="search-bar" id="search-bar" hidden>
+      <div class="search-bar-inner">
+        <input type="search" placeholder="キーワードを入力" aria-label="サイト内検索">
+        <button class="btn btn-primary" type="button">検索</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- モバイルドロワー -->
+  <div class="drawer" id="drawer" hidden>
+    <div class="drawer-header">
+      <span class="logo drawer-logo">ColaSite</span>
+      <button class="drawer-close" id="drawer-close" aria-label="メニューを閉じる">✕</button>
+    </div>
+    <nav aria-label="モバイルナビゲーション">
+      <ul class="drawer-nav">
+        <li>
+          <button class="drawer-acc" aria-expanded="false">ブランド <span class="acc-icon" aria-hidden="true">＋</span></button>
+          <ul class="drawer-sub" hidden>
+            <li><a href="#brands">ブランド一覧</a></li>
+            <li><a href="#brands">炭酸飲料</a></li>
+            <li><a href="#brands">お茶・水</a></li>
+            <li><a href="#brands">コーヒー</a></li>
+          </ul>
+        </li>
+        <li><a href="#campaigns" class="drawer-link">キャンペーン</a></li>
+        <li>
+          <button class="drawer-acc" aria-expanded="false">記事 <span class="acc-icon" aria-hidden="true">＋</span></button>
+          <ul class="drawer-sub" hidden>
+            <li><a href="#articles">最新の記事</a></li>
+            <li><a href="#articles">ストーリー</a></li>
+          </ul>
+        </li>
+        <li><a href="#" class="drawer-link">企業情報</a></li>
+      </ul>
+    </nav>
+  </div>
+  <div class="drawer-overlay" id="drawer-overlay" hidden></div>
+
+  <main>
+
+    <!-- ヒーローカルーセル（§4.1） -->
+    <section class="hero" aria-roledescription="carousel" aria-label="キャンペーン情報">
+      <div class="hero-track" id="hero-track">
+        <div class="hero-slide hero-slide-1" role="group" aria-roledescription="slide" aria-label="1 / 3">
+          <div class="hero-content">
+            <p class="hero-tag">キャンペーン</p>
+            <h1>ヒーローの見出しが入ります</h1>
+            <p class="hero-sub">キャンペーンのサブテキストがここに入ります。</p>
+            <a href="#campaigns" class="btn btn-primary btn-lg">詳しくみる</a>
+          </div>
+        </div>
+        <div class="hero-slide hero-slide-2" role="group" aria-roledescription="slide" aria-label="2 / 3">
+          <div class="hero-content">
+            <p class="hero-tag">新製品</p>
+            <h2 class="hero-h">2枚目の見出しが入ります</h2>
+            <p class="hero-sub">新製品の紹介テキストがここに入ります。</p>
+            <a href="#brands" class="btn btn-primary btn-lg">詳しくみる</a>
+          </div>
+        </div>
+        <div class="hero-slide hero-slide-3" role="group" aria-roledescription="slide" aria-label="3 / 3">
+          <div class="hero-content">
+            <p class="hero-tag">ストーリー</p>
+            <h2 class="hero-h">3枚目の見出しが入ります</h2>
+            <p class="hero-sub">ストーリー記事の紹介テキストがここに入ります。</p>
+            <a href="#articles" class="btn btn-primary btn-lg">読んでみる</a>
+          </div>
+        </div>
+      </div>
+      <button class="carousel-arrow hero-prev" id="hero-prev" aria-label="前のスライド">‹</button>
+      <button class="carousel-arrow hero-next" id="hero-next" aria-label="次のスライド">›</button>
+      <div class="hero-controls">
+        <div class="hero-dots" id="hero-dots" role="tablist" aria-label="スライド選択"></div>
+        <button class="hero-pause" id="hero-pause" aria-label="自動再生を一時停止">❚❚</button>
+      </div>
+    </section>
+
+    <!-- ブランドカルーセル（§4.2） -->
+    <section class="section" id="brands">
+      <div class="container">
+        <div class="section-head">
+          <h2>ブランド</h2>
+          <a href="#" class="text-link">すべて見る <span aria-hidden="true">→</span></a>
+        </div>
+        <div class="brand-carousel-wrap">
+          <button class="carousel-arrow brand-prev" id="brand-prev" aria-label="前へスクロール">‹</button>
+          <ul class="brand-carousel" id="brand-carousel">
+            <li><a href="#" class="brand-item"><span class="brand-circle" style="--brand-c1:#F40009;--brand-c2:#9E0007">コーラ</span><span class="brand-name">コーラ</span></a></li>
+            <li><a href="#" class="brand-item"><span class="brand-circle" style="--brand-c1:#FF8A00;--brand-c2:#E05500">オレンジ ソーダ</span><span class="brand-name">オレンジソーダ</span></a></li>
+            <li><a href="#" class="brand-item"><span class="brand-circle" style="--brand-c1:#00B140;--brand-c2:#007A2C">レモン ライム</span><span class="brand-name">レモンライム</span></a></li>
+            <li><a href="#" class="brand-item"><span class="brand-circle" style="--brand-c1:#6F4E37;--brand-c2:#4A3325">コーヒー</span><span class="brand-name">コーヒー</span></a></li>
+            <li><a href="#" class="brand-item"><span class="brand-circle" style="--brand-c1:#2E7D32;--brand-c2:#1B4D1E">緑茶</span><span class="brand-name">緑茶</span></a></li>
+            <li><a href="#" class="brand-item"><span class="brand-circle" style="--brand-c1:#4FC3F7;--brand-c2:#0288D1">天然水</span><span class="brand-name">天然水</span></a></li>
+            <li><a href="#" class="brand-item"><span class="brand-circle" style="--brand-c1:#1565C0;--brand-c2:#0D3C77">スポーツ</span><span class="brand-name">スポーツ飲料</span></a></li>
+            <li><a href="#" class="brand-item"><span class="brand-circle" style="--brand-c1:#FBC02D;--brand-c2:#C79100">エナジー</span><span class="brand-name">エナジー</span></a></li>
+          </ul>
+          <button class="carousel-arrow brand-next" id="brand-next" aria-label="次へスクロール">›</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- キャンペーン（§4.3） -->
+    <section class="section section-gray" id="campaigns">
+      <div class="container">
+        <div class="section-head">
+          <h2>キャンペーン</h2>
+          <a href="#" class="text-link">もっと見る <span aria-hidden="true">→</span></a>
+        </div>
+        <div class="campaign-grid">
+          <a href="#" class="card campaign-card">
+            <div class="card-media media-red"><span class="media-label">キャンペーン ビジュアル</span></div>
+            <div class="card-body">
+              <p class="tag">キャンペーン</p>
+              <h3>キャンペーンタイトルが入ります</h3>
+              <p class="card-date">期間: 20XX.XX.XX 〜 20XX.XX.XX</p>
+            </div>
+          </a>
+          <a href="#" class="card campaign-card">
+            <div class="card-media media-orange"><span class="media-label">キャンペーン ビジュアル</span></div>
+            <div class="card-body">
+              <p class="tag">プレゼント</p>
+              <h3>2つ目のキャンペーンタイトルが入ります</h3>
+              <p class="card-date">期間: 20XX.XX.XX 〜 20XX.XX.XX</p>
+            </div>
+          </a>
+        </div>
+        <a href="#" class="app-banner">
+          <div class="app-banner-text">
+            <p class="tag tag-light">公式アプリ</p>
+            <h3>アプリ訴求バナーの見出しが入ります</h3>
+            <p>説明文がここに入ります。ダウンロードはこちらから。</p>
+          </div>
+          <span class="btn btn-white">ダウンロード</span>
+        </a>
+      </div>
+    </section>
+
+    <!-- 記事・ストーリー（§4.4） -->
+    <section class="section" id="articles">
+      <div class="container">
+        <div class="section-head">
+          <h2>最新の記事</h2>
+          <a href="#" class="text-link">もっと見る <span aria-hidden="true">→</span></a>
+        </div>
+        <div class="article-grid">
+          <a href="#" class="card article-card">
+            <div class="card-media media-teal"><span class="media-label">記事サムネイル</span></div>
+            <div class="card-body">
+              <p class="tag">ストーリー</p>
+              <h3>記事タイトルが入ります。長い場合は2行で省略されます。ダミーテキストです。</h3>
+              <p class="card-date">2026.08.01</p>
+            </div>
+          </a>
+          <a href="#" class="card article-card">
+            <div class="card-media media-purple"><span class="media-label">記事サムネイル</span></div>
+            <div class="card-body">
+              <p class="tag">サステナビリティ</p>
+              <h3>2つ目の記事タイトルが入ります</h3>
+              <p class="card-date">2026.07.28</p>
+            </div>
+          </a>
+          <a href="#" class="card article-card">
+            <div class="card-media media-blue"><span class="media-label">記事サムネイル</span></div>
+            <div class="card-body">
+              <p class="tag">製品</p>
+              <h3>3つ目の記事タイトルが入ります</h3>
+              <p class="card-date">2026.07.20</p>
+            </div>
+          </a>
+          <a href="#" class="card article-card">
+            <div class="card-media media-green"><span class="media-label">記事サムネイル</span></div>
+            <div class="card-body">
+              <p class="tag">カルチャー</p>
+              <h3>4つ目の記事タイトルが入ります</h3>
+              <p class="card-date">2026.07.15</p>
+            </div>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- 下部CTA（§4.5） -->
+    <section class="cta-band">
+      <div class="container cta-inner">
+        <div>
+          <h2>会員登録CTAの見出しが入ります</h2>
+          <p>説明文がここに入ります。登録すると最新情報をお届けします。</p>
+        </div>
+        <a href="#" class="btn btn-white btn-lg">無料で登録する</a>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- フッター（§3.2） -->
+  <footer class="site-footer">
+    <div class="container">
+      <p class="logo footer-logo">ColaSite</p>
+      <div class="footer-cols">
+        <section class="footer-col">
+          <h3 class="footer-heading"><button class="footer-acc" aria-expanded="false">会社情報 <span class="acc-icon" aria-hidden="true">＋</span></button></h3>
+          <ul class="footer-links">
+            <li><a href="#">企業情報</a></li>
+            <li><a href="#">ニュースリリース</a></li>
+            <li><a href="#">サステナビリティ</a></li>
+          </ul>
+        </section>
+        <section class="footer-col">
+          <h3 class="footer-heading"><button class="footer-acc" aria-expanded="false">サポート <span class="acc-icon" aria-hidden="true">＋</span></button></h3>
+          <ul class="footer-links">
+            <li><a href="#">お問い合わせ</a></li>
+            <li><a href="#">よくあるご質問</a></li>
+            <li><a href="#">サイトマップ</a></li>
+          </ul>
+        </section>
+        <section class="footer-col">
+          <h3 class="footer-heading"><button class="footer-acc" aria-expanded="false">関連サイト <span class="acc-icon" aria-hidden="true">＋</span></button></h3>
+          <ul class="footer-links">
+            <li><a href="#">採用情報</a></li>
+            <li><a href="#">IR情報</a></li>
+            <li><a href="#">公式アプリ</a></li>
+          </ul>
+        </section>
+        <section class="footer-col footer-col-sns">
+          <h3 class="footer-heading footer-heading-static">SNS</h3>
+          <ul class="sns-links">
+            <li><a href="#" aria-label="X（旧Twitter）"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4l16 16M20 4L4 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></a></li>
+            <li><a href="#" aria-label="Instagram"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="4" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="17" cy="7" r="1" fill="currentColor"/></svg></a></li>
+            <li><a href="#" aria-label="YouTube"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="18" height="12" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M10 9.5v5l4.5-2.5z" fill="currentColor"/></svg></a></li>
+            <li><a href="#" aria-label="Facebook"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 8h2.5V5H14a4 4 0 0 0-4 4v2H7.5v3H10v6h3v-6h2.5l.5-3H13V9a1 1 0 0 1 1-1z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg></a></li>
+          </ul>
+        </section>
+      </div>
+      <button class="lang-selector">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><ellipse cx="12" cy="12" rx="4" ry="9" fill="none" stroke="currentColor" stroke-width="2"/><line x1="3" y1="12" x2="21" y2="12" stroke="currentColor" stroke-width="2"/></svg>
+        日本 - 日本語
+      </button>
+      <div class="footer-bottom">
+        <ul class="legal-links">
+          <li><a href="#">利用規約</a></li>
+          <li><a href="#">プライバシーポリシー</a></li>
+          <li><a href="#" id="cookie-settings">Cookie設定</a></li>
+          <li><a href="#">特定商取引法に基づく表記</a></li>
+        </ul>
+        <p class="copyright">© 20XX ColaSite（学習用デモサイト）</p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Cookie同意バナー（§3.3） -->
+  <div class="cookie-banner" id="cookie-banner" role="region" aria-label="Cookieの利用について" hidden>
+    <p>当サイト（デモ）は体験向上のためCookieを使用します。詳細はプライバシーポリシーをご覧ください。</p>
+    <div class="cookie-actions">
+      <button class="btn btn-secondary" id="cookie-config">設定</button>
+      <button class="btn btn-primary" id="cookie-accept">すべて受け入れる</button>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
