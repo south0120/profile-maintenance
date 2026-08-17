@@ -38,6 +38,7 @@ npm run dev      # 開発サーバー → 表示されたURLをブラウザで�
 |---|---|
 | [docs/01_research.md](docs/01_research.md) | 既存ツールの調査結果（国内・海外）と、自作ツールを開発する意義の整理 |
 | [docs/02_requirements.md](docs/02_requirements.md) | 需要分析・ユースケース・機能要件・非機能要件・データモデル・画面構成・技術スタック案・開発ロードマップ |
+| [docs/shared-mail/00_decision.md](docs/shared-mail/00_decision.md) | **（別システムの検討）** 複数メールアドレスを複数人で管理する「メールワイズ相当」の共有メール管理システムを自作すべきかの判断材料・技術設計・工数見積もり |
 
 ## 解決したい課題（サマリ）
 
